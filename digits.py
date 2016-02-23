@@ -1,4 +1,23 @@
+from pylab import *
 from numpy import *
+import matplotlib.pyplot as plt
+import matplotlib.cbook as cbook
+import time
+from scipy.misc import imread
+from scipy.misc import imresize
+import matplotlib.image as mpimg
+from scipy.ndimage import filters
+import urllib
+from numpy import random
+
+
+#import cPickle
+
+import os
+from scipy.io import loadmat
+
+#Load the MNIST digit data
+M = loadmat("mnist_all.mat")
 
 
 # activation function
@@ -43,20 +62,48 @@ def tutorial() :
              cost(forward (x, W1, b1, W2, b2),1))/0.001)
 
 
-def part2-forward(X):
+#def part2-forward(X):
     
 def part2():
     '''
     N - number of samples
     b - 10 x 1
-    x - (1 + 784) x N ; extra vector for bias
+    x - (784) x N
     output - 10 x 1
-
     for each possible outputs o_j, j = 0 -> 9: #output level
         for each training image M["trainj"][i], i = 1 -> len(M["trainj"]): #training image level
                  get image M["trainj"][i]
                  divide all pixels by 255.0
                  flatten image to create vector
                  o_j = sum(w)
-
     '''
+    outputs = {0:[], 1:[], 2:[], 3:[], 4:[], 
+               5:[], 6:[], 7:[], 8:[], 9:[]} # dict of lists of outputs per digit i.e. outputs = [ [outputs for 1], [outputs for 2] ... ]
+    average_output = []    
+    
+    #generate list of weights - 10 weights per pixel
+    # i.e. W[50][8] = weight of the 51st pixel to output digit 8
+    B = random.rand(1, 10)
+    W = random.rand(10, 784)
+    outputs[2]
+    
+    
+    for digit in range(10): # for each digit 
+        train_key_name = "train" + str(digit) # produce key for M
+        print(digit)
+        for i in range(len(M[train_key_name])):
+            #print(i)
+            X = M[train_key_name][i].flatten() # input image array as vector
+            
+            X = X*(1.0/255.0)
+            #outputs[digit]
+            #dot(W[0][digit], X)
+            #B[digit]
+            outputs[digit].append(dot(W[0][digit], X) + B[0][digit])
+        average_output.append(average(outputs[digit]))
+    print(average_output)
+            
+if __name__ == "__main__":
+    part2()
+    
+        
