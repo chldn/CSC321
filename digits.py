@@ -19,6 +19,13 @@ from scipy.io import loadmat
 
 
 def get_data():
+    '''
+    This function puts all data from mnist_all.mat into the 2 lists train_data and test_data.
+    In addition, the expected/target outputs are put into the two lists train_target and test_target. 
+    The indices of (train_data, train_target) and (test_data, test_target) are the same so we can
+    match the actual outputs later on to measure performance.
+    '''
+    #initiate lists for aggregate training and test arrays
     train_data = []
     test_data = []
 
@@ -28,6 +35,7 @@ def get_data():
     #Load the MNIST digit data
     M = loadmat("mnist_all.mat")
 
+    # getting 10 x 10 identity matrix to represent target outputs for networks
     identity_matrix = identity(10)
 
     for digit in range(0,10): 
@@ -37,6 +45,7 @@ def get_data():
         train_data.extend(M[train_key]) # add to aggregated train data
 
         # target training data output; add in train_size number of identity[digit]s
+        # for example, identity_matrix[3] = [0,0,0,1,0,0,0,0,0,0] <- expected / target output
         train_target.extend(list(tile(identity_matrix[digit], (train_size, 1))))
 
         # test data input 
@@ -47,7 +56,7 @@ def get_data():
         # target test data output; add in test_size number of identity[digit]s
         test_target.extend(list(tile(identity_matrix[digit], (test_size, 1))))
 
-
+    # make all lists of aggregated arrays into a matrix & scale it 
     train_data = matrix(train_data)*(1/255.0) # dimensions = (60000, 784)
     test_data = matrix(test_data)*(1/255.0) # dimensions = (10000, 784)
     train_target = matrix(train_target)*(1/255.0) # dimensions = (60000, 10)
