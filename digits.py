@@ -29,8 +29,7 @@ def forward(x, W0, b0, W1, b1):
     output = softmax(L1)
     return L0, L1, output
     
-def cost(y, y_):
-    return -sum(y_*log(y)) 
+
 
 def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
     '''Incomplete function for computing the gradient of the cross-entropy
@@ -98,8 +97,10 @@ def get_data():
     return train_data, test_data, train_target, test_target
 
 
-def part2(X, W, B):
+def simple_network(X, W, B):
     '''
+    PART 2
+
     This is the basis of a simple neural network.
     Return o's as linear combinations of the input X's (i.e. activation function is the identity)
 
@@ -111,8 +112,38 @@ def part2(X, W, B):
     #print(softmax(output.T).shape)
     return softmax(output.T)
 
+def gradient_descent(X, Y, W, B, alpha, num_iterations):
+    for i in range(num_iterations):
+        hypothesis = dot(X, W)
+        loss = hypothesis - Y
 
-#def part3(X, W, B):
+        cost = cost(Y, simple_network(X, W, B))
+        gradient = dot(X, loss) / X.shape[0] # X.shape[0] = # samples(600000)
+        theta = theta - alpha * gradient
+    return theta
+
+
+def cost(y, y_):
+    '''
+    y - target / expected output vector
+    y_ - computed output vector (from computation)
+    '''
+    return -sum(y_*log(y)) 
+
+def part3(X, W, B):
+    '''
+    Cost Function = cross-entropy cost function (implemented in cost())
+    Compute the gradient of the cost function with respect to W and B to training cases
+    '''
+
+    for i in range(X.shape[0]):
+
+        e
+
+
+
+
+
 
 
 
@@ -121,7 +152,10 @@ if __name__ == "__main__":
 
     W = random.rand(784, 10)
     B = random.rand(1, 10)
-    part2(train_data, W, B)
+    simple_network(train_data, W, B)
+
+    alpha = 0.0005
+
 
 
     
