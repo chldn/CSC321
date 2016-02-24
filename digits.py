@@ -11,12 +11,54 @@ import urllib
 from numpy import random
 
 
-#import cPickle
+import cPickle
 
 import os
 from scipy.io import loadmat
 
 
+
+def get_data():
+    train_data = []
+    test_data = []
+
+    train_target = []
+    test_target = []
+
+    #Load the MNIST digit data
+    M = loadmat("mnist_all.mat")
+
+    identity_matrix = identity(10)
+
+    for digit in range(0,10): 
+        # training data input
+        train_key = "train" + str(digit) # produce training key for M
+        train_size = M[train_key].shape[0] # get number of cases / inputs
+        train_data.extend(M[train_key]) # add to aggregated train data
+
+        # target training data output; add in train_size number of identity[digit]s
+        train_target.extend(list(tile(identity_matrix[digit], (train_size, 1))))
+
+        # test data input 
+        test_key = "test" + str(digit) # produce training key for M
+        test_size = M[test_key].shape[0] # get number of cases / inputs
+        test_data.extend(M[test_key]) # add to aggregated test data
+
+        # target test data output; add in test_size number of identity[digit]s
+        test_target.extend(list(tile(identity_matrix[digit], (test_size, 1))))
+
+
+    train_data = matrix(train_data)*(1/255.0) # dimensions = (60000, 784)
+    test_data = matrix(test_data)*(1/255.0) # dimensions = (10000, 784)
+    train_target = matrix(train_target)*(1/255.0) # dimensions = (60000, 10)
+    test_target = matrix(test_target)*(1/255.0) # dimensions = (10000, 10)
+    
+    #print(train_data.shape)
+    #print(test_data.shape)
+    #print(train_target.shape)
+    #print(test_target.shape)
+
+    return train_data, test_data, train_target, test_target
 
 
 # activation function
@@ -62,101 +104,32 @@ def tutorial() :
 
 
 def softmax(y):
-    '''Return the output of the softmax function for the matrix of output y. y
-    is an NxM matrix where N is the number of outputs for a single case, and M
-    is the number of cases'''
+    '''Return the output of the softmax function for the matrix of output y.
+    y is an NxM matrix where N(rows) is the number of outputs for a single case, 
+    and M(col) is the number of cases'''
     return exp(y)/tile(sum(exp(y),0), (len(y),1))
-    
-def part2(W, B):
+            
+
+def part2(X, W, B):
     '''
-    N - number of samples
-    b - 10 x 1
-    x - (784) x N
-    output - 10 x 1
-    for each possible outputs o_j, j = 0 -> 9: #output level
-        for each training image M["trainj"][i], i = 1 -> len(M["trainj"]): #training image level
-                 get image M["trainj"][i]
-                 divide all pixels by 255.0
-                 flatten image to create vector
-                 o_j = equation
+    This is the basis of a simple neural network.
+    Return o's as linear combinations of the input X's (i.e. activation function is the identity)
+
+    X - input of dimension 60000 x 784
+    W - input of dimension 784 x 10
+    B - input of dimension 1 x 10
     '''
-    outputs = []
-    # each value output[digit] is [trainimage1_output, trainimage2_output ... ,trainimagen_output]
-    softmax_output = []    
-    
-    #generate list of weights - 10 weights per pixel
-    # i.e. W[50][8] = weight of the 51st pixel to output digit 8
-
-    for digit in range(10): # for each digit 
-        train_key_name = "train" +  str(digit) # produce key for M
-        
-        for i in range(len(M[train_key_name])):
-            #print(i)
-            X = M[train_key_name][i].flatten() # input image array as vector
-            
-            X = X*(1.0/255.0) # scale the image array
-            
-            print(dot(W[0][digit], X))
-            # adds output for ith training image to {i:[outputs]}
-            outputs[digit].append(dot(W[0][digit], X) + B[0][digit]) # summation equation
-            break
-        # once all outputs for digit i are added to outputs[digit],
-        # outputs[digit] should be [o1,o2, ... on], n = # images
-        #print(outputs[digit][0])
-        # make all cases of digit outputs into a matrix
-        # but, transpose from M x N to N x M
-        # (where N = # outputs for each single case, M = #cases)
-        #softmax_input = matrix((outputs[digit])).T
-        #softmax_output.append(softmax(softmax_input))
-        
-        
-    #print(softmax_output)
-
-def get_data():
-    #Load the MNIST digit data
-    M = loadmat("mnist_all.mat")
-
-    train_data = []
-    test_data = []
-
-    train_target = []
-    test_target = []
-
-    identity_matrix = identity(10)
-
-    for digit in range(0,10): 
-        # training data input
-        train_key = "train" + str(digit) # produce training key for M
-        train_size = M[train_key].shape[0] # get number of cases / inputs
-        train_data.extend(M[train_key]) # add to aggregated train data
-
-        # target training data output; add in train_size number of identity[digit]s
-        train_target.extend(list(tile(identity_matrix[digit], (train_size, 1))))
-
-        # test data input 
-        test_key = "test" + str(digit) # produce training key for M
-        test_size = M[test_key].shape[0] # get number of cases / inputs
-        test_data.extend(M[test_key]) # add to aggregated test data
-
-        # target test data output; add in test_size number of identity[digit]s
-        test_target.extend(list(tile(identity_matrix[digit], (test_size, 1))))
+    output = dot(X, W) + B # dimensions = (60000, 10) for train_data
+    #print(softmax(output.T).shape)
+    return softmax(output.T)
 
 
-    train_data = matrix(train_data)*(1/255.0) # dimensions = (60000, 784)
-    test_data = matrix(test_data)*(1/255.0) # dimensions = (10000, 784)
-    train_target = matrix(train_target)*(1/255.0) # dimensions = (60000, 10)
-    test_target = matrix(test_target)*(1/255.0) # dimensions = (10000, 10)
-    
-    print(train_data.shape)
-    print(test_data.shape)
-    print(train_target.shape)
-    print(test_target.shape)
-            
 if __name__ == "__main__":
-    get_data()
+    train_data, test_data, train_target, test_target = get_data()
 
-    #B = random.rand(1, 10)
-    #W = random.rand(10, 784)
+    W = random.rand(784, 10)
+    B = random.rand(1, 10)
+    part2(train_data, W, B)
 
-    #part2()
+
     
