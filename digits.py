@@ -16,8 +16,7 @@ from numpy import random
 import os
 from scipy.io import loadmat
 
-#Load the MNIST digit data
-M = loadmat("mnist_all.mat")
+
 
 
 # activation function
@@ -68,7 +67,7 @@ def softmax(y):
     is the number of cases'''
     return exp(y)/tile(sum(exp(y),0), (len(y),1))
     
-def part2():
+def part2(W, B):
     '''
     N - number of samples
     b - 10 x 1
@@ -81,21 +80,16 @@ def part2():
                  flatten image to create vector
                  o_j = equation
     '''
-    outputs = {0:[], 1:[], 2:[], 3:[], 4:[], 
-               5:[], 6:[], 7:[], 8:[], 9:[]} 
+    outputs = []
     # each value output[digit] is [trainimage1_output, trainimage2_output ... ,trainimagen_output]
     softmax_output = []    
     
     #generate list of weights - 10 weights per pixel
     # i.e. W[50][8] = weight of the 51st pixel to output digit 8
-    B = random.rand(1, 10)
-    W = random.rand(10, 784)
 
-    
-    
     for digit in range(10): # for each digit 
         train_key_name = "train" +  str(digit) # produce key for M
-        print(digit)
+        
         for i in range(len(M[train_key_name])):
             #print(i)
             X = M[train_key_name][i].flatten() # input image array as vector
@@ -117,9 +111,52 @@ def part2():
         
         
     #print(softmax_output)
+
+def get_data():
+    #Load the MNIST digit data
+    M = loadmat("mnist_all.mat")
+
+    train_data = []
+    test_data = []
+
+    train_target = []
+    test_target = []
+
+    identity_matrix = identity(10)
+
+    for digit in range(0,10): 
+        # training data input
+        train_key = "train" + str(digit) # produce training key for M
+        train_size = M[train_key].shape[0] # get number of cases / inputs
+        train_data.extend(M[train_key]) # add to aggregated train data
+
+        # target training data output; add in train_size number of identity[digit]s
+        train_target.extend(list(tile(identity_matrix[digit], (train_size, 1))))
+
+        # test data input 
+        test_key = "test" + str(digit) # produce training key for M
+        test_size = M[test_key].shape[0] # get number of cases / inputs
+        test_data.extend(M[test_key]) # add to aggregated test data
+
+        # target test data output; add in test_size number of identity[digit]s
+        test_target.extend(list(tile(identity_matrix[digit], (test_size, 1))))
+
+
+    train_data = matrix(train_data)*(1/255.0) # dimensions = (60000, 784)
+    test_data = matrix(test_data)*(1/255.0) # dimensions = (10000, 784)
+    train_target = matrix(train_target)*(1/255.0) # dimensions = (60000, 10)
+    test_target = matrix(test_target)*(1/255.0) # dimensions = (10000, 10)
+    
+    print(train_data.shape)
+    print(test_data.shape)
+    print(train_target.shape)
+    print(test_target.shape)
             
 if __name__ == "__main__":
-    part2()
+    get_data()
+
+    #B = random.rand(1, 10)
+    #W = random.rand(10, 784)
+
+    #part2()
     
-    
-        
