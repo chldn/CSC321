@@ -62,7 +62,11 @@ def tutorial() :
              cost(forward (x, W1, b1, W2, b2),1))/0.001)
 
 
-#def part2-forward(X):
+def softmax(y):
+    '''Return the output of the softmax function for the matrix of output y. y
+    is an NxM matrix where N is the number of outputs for a single case, and M
+    is the number of cases'''
+    return exp(y)/tile(sum(exp(y),0), (len(y),1))
     
 def part2():
     '''
@@ -75,35 +79,47 @@ def part2():
                  get image M["trainj"][i]
                  divide all pixels by 255.0
                  flatten image to create vector
-                 o_j = sum(w)
+                 o_j = equation
     '''
     outputs = {0:[], 1:[], 2:[], 3:[], 4:[], 
-               5:[], 6:[], 7:[], 8:[], 9:[]} # dict of lists of outputs per digit i.e. outputs = [ [outputs for 1], [outputs for 2] ... ]
-    average_output = []    
+               5:[], 6:[], 7:[], 8:[], 9:[]} 
+    # each value output[digit] is [trainimage1_output, trainimage2_output ... ,trainimagen_output]
+    softmax_output = []    
     
     #generate list of weights - 10 weights per pixel
     # i.e. W[50][8] = weight of the 51st pixel to output digit 8
     B = random.rand(1, 10)
     W = random.rand(10, 784)
-    outputs[2]
+
     
     
     for digit in range(10): # for each digit 
-        train_key_name = "train" + str(digit) # produce key for M
+        train_key_name = "train" +  str(digit) # produce key for M
         print(digit)
         for i in range(len(M[train_key_name])):
             #print(i)
             X = M[train_key_name][i].flatten() # input image array as vector
             
-            X = X*(1.0/255.0)
-            #outputs[digit]
-            #dot(W[0][digit], X)
-            #B[digit]
-            outputs[digit].append(dot(W[0][digit], X) + B[0][digit])
-        average_output.append(average(outputs[digit]))
-    print(average_output)
+            X = X*(1.0/255.0) # scale the image array
+            
+            print(dot(W[0][digit], X))
+            # adds output for ith training image to {i:[outputs]}
+            outputs[digit].append(dot(W[0][digit], X) + B[0][digit]) # summation equation
+            break
+        # once all outputs for digit i are added to outputs[digit],
+        # outputs[digit] should be [o1,o2, ... on], n = # images
+        #print(outputs[digit][0])
+        # make all cases of digit outputs into a matrix
+        # but, transpose from M x N to N x M
+        # (where N = # outputs for each single case, M = #cases)
+        #softmax_input = matrix((outputs[digit])).T
+        #softmax_output.append(softmax(softmax_input))
+        
+        
+    #print(softmax_output)
             
 if __name__ == "__main__":
     part2()
+    
     
         
