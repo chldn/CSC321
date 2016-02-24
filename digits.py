@@ -17,6 +17,34 @@ import os
 from scipy.io import loadmat
 
 
+def tanh_layer(y, W, b):    
+    '''Return the output of a tanh layer for the input matrix y. y
+    is an NxM matrix where N is the number of inputs for a single case, and M
+    is the number of cases'''
+    return tanh(dot(W.T, y)+b)
+
+def forward(x, W0, b0, W1, b1):
+    L0 = tanh_layer(x, W0, b0)
+    L1 = tanh_layer(L0, W1, b1)
+    output = softmax(L1)
+    return L0, L1, output
+    
+def cost(y, y_):
+    return -sum(y_*log(y)) 
+
+def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
+    '''Incomplete function for computing the gradient of the cross-entropy
+    cost function w.r.t the parameters of a neural network'''
+    dCdL1 =  y - y_
+    dCdW1 =  dot(L0, ((1- L1**2)*dCdL1).T )
+
+
+def softmax(y):
+    '''Return the output of the softmax function for the matrix of output y.
+    y is an NxM matrix where N(rows) is the number of outputs for a single case, 
+    and M(col) is the number of cases'''
+    return exp(y)/tile(sum(exp(y),0), (len(y),1))
+            
 
 def get_data():
     '''
@@ -70,55 +98,6 @@ def get_data():
     return train_data, test_data, train_target, test_target
 
 
-# activation function
-def sigmoid(t):
-    return 1/(1+exp(-t))
-
-def forward(x, W1, b1, W2, b2):
-    print("dot(W1.T, x)", dot(W1.T, x))
-    h = sigmoid(b1+dot(W1.T, x))    
-    print("h=", h)
-    out = sigmoid(b2+dot(W2.T, h))
-    print("out =", out)
-    return out
-
-    
-def cost(out, y):
-    return (out-y)**2
-
-
-def tutorial() :
-    x = array([1, -2]) #input
-
-    W1 = array([[1,  -3],
-                [-2, -2]])
-    b1 = array([-7, .5])        
-
-    W2 = array([[-2], [5]])
-    b2 = array([[-4]])
-
-    dx = array([0, 0.001])
-
-    #
-    dW2 = array([[0], [0.001]])
-    dW2 = array([[0.001], [0]])
-
-    dW1 = array([[0, 0],
-                 [0, 0.001]])
-    #
-
-    #Estimate the derivative w.r.t x2
-    print(  (cost(forward (x+dx, W1, b1, W2, b2),1)-
-             cost(forward (x, W1, b1, W2, b2),1))/0.001)
-
-
-def softmax(y):
-    '''Return the output of the softmax function for the matrix of output y.
-    y is an NxM matrix where N(rows) is the number of outputs for a single case, 
-    and M(col) is the number of cases'''
-    return exp(y)/tile(sum(exp(y),0), (len(y),1))
-            
-
 def part2(X, W, B):
     '''
     This is the basis of a simple neural network.
@@ -131,6 +110,10 @@ def part2(X, W, B):
     output = dot(X, W) + B # dimensions = (60000, 10) for train_data
     #print(softmax(output.T).shape)
     return softmax(output.T)
+
+
+#def part3(X, W, B):
+
 
 
 if __name__ == "__main__":
