@@ -107,6 +107,21 @@ def get_data():
 
     return train_data, test_data, train_target, test_target
 
+def part1():
+    '''
+   Create a subplot image with ten images of each digit from the data set
+   '''
+    for digit in range(10):
+        for i in range(10):
+            image = M["train"+str(digit)][i]
+            reshaped = reshape(image, [28, 28])
+            subplot(10, 10, (digit)*10+(i+1))
+            plt.imshow(reshaped)
+        #don't show axes
+    plt.axis('off')
+    plt.savefig('100_dataset_images.jpg')
+
+    
 def generate(digit, Y, training):
     '''
     Returns the training data and train targets for a certain digit.
@@ -123,19 +138,6 @@ def generate(digit, Y, training):
         return train_data[start:end], train_target[start:end], Y[start:end]
     else: # testing
         return test_data[start:end], test_target[start:end], Y[start:end]
-
-def part1(data_set):
-    '''
-   Create a folder for each digit with ten images of that digit from the data set
-   '''
-#     for digit in range(10):
-#         #d = os.path.dirname('image_folder' + str(digit))
-#         if not os.path.exists('image_folder' + str(digit)):
-#             os.makedirs('image_folder' + str(digit))
-#             for i in range(10):
-#                 #subplot(digit, i, digit+i), imshow(data_set[digit][i])
-    pass
-#                 #imsave('image_folder' + str(digit)+'/'+str(digit) + '.' +str(i)+'.jpg', data_set[digit][i])
 
 def part2(X, W, B):
     '''
@@ -199,6 +201,49 @@ def get_dWs(Y_total):
     #end debug
     
     return dWs
+    
+def part4(X, W, B):
+    '''
+    Evaluate gradient using part3 function with finite differences, and make 
+    sure you get the same result either way
+    '''
+    if part3(X, W, B) == finite_diff(X, W, B):
+        return True
+        
+def finite_diff():
+    '''
+    approximate the gradient of the cost with respect to W, at coordinate i
+    '''
+    cost = cost(part2(X, W, B), Y)
+
+    pass
+        
+def part5():
+    '''
+    minimize your the cost function using mini-batch gradient descent, using 
+    the training set provided to you
+    learning rate = 0.01
+    batch size = 50
+    
+    For the training and the test set, graph the negative-log probability of 
+    the correct answer and correct classification rate versus the number of 
+    updates to the weights and biases during training
+    
+    for 20 examples from the test set, add them 
+    '''
+    pass
+
+def part7():
+    '''
+    For a network which takes X (input vector of 784 units), H (hidden
+    layer of 300 hidden units), O (the 10 output units - one per digit, W1 (the 
+    weights from X to H),and W2 (the weight matrix going from H to O)..
+    Implement a function that computes the gradient of the negative log 
+    probability of the correct answer function, computed for a set of training 
+    examples, with respect to the network parameters
+    '''
+    
+    pass
     
  
 if __name__ == "__main__":
