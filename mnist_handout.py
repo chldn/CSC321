@@ -73,11 +73,10 @@ y = argmax(output)
 
 if __name__ == '__main__':
     #Display the 150-th "5" digit from the training set
-    #[] = imshow(M["train2"][1].reshape((28,28)), cmap=cm.gray)
-    [X1, map1] = imread(M["train2"][0].reshape((28,28)), True)
-    
-    subplot(1,2,1), subimage(X1, map1)
-
-    show()
-
+    imshow(M["train1"][4].reshape((28,28)), cmap=cm.gray)
+    print(M["train1"][4])
     print(M.keys())
+    #[X1, map1] = imread(M["train2"][0].reshape((28,28)), True)
+    #subplot(1,2,1), subimage(X1, map1)
+    #show()
+    #print(M.keys())
