@@ -11,7 +11,7 @@ import urllib
 from numpy import random
 
 
-import cPickle
+#import cPickle
 
 import os
 from scipy.io import loadmat
@@ -140,15 +140,17 @@ def gradient_descent(W, derivative):
 
 def derivative(Y, T, X):
     '''
-    Return derivative of the cost function with respect to W.
+    Return derivative(dW) of the cost function with respect to W.
+    
+    dW has dimensions 10 x 784
     '''
-    return sum(dot((Y - T).T, X))
+    
+    return dot((Y - T), X.T)
     
 def part3(X, W, B):
     '''
     Return the gradient of the crossentropy cost funciton with respect to the
     parameters of the network (W and b), for a given subset of training cases.
-
     X - input of dimension 60000 x 784
     W - input of dimension 784 x 10
     B - input of dimension 1 x 10
@@ -156,36 +158,47 @@ def part3(X, W, B):
     pass
     #cost = -sum(targets*log(predictions))
  
+def generate(digit, Y, training):
+    '''
+    Returns the training data and train targets for a certain digit.
+    
+    digit - digit that you want to get the data for
+    training - #bool representing if training / test data wanted
+    '''
+    if digit == 0:
+        (start, end) = (0,digit_to_indexPlusOne[0])  
+    else:
+        (start, end) = (digit_to_indexPlusOne[digit-1], 
+                            digit_to_indexPlusOne[digit])    
+    if (training):
+        return train_data[start:end], train_target[start:end], Y[start:end]
+    else: # testing
+        return test_data[start:end], test_target[start:end], Y[start:end]
+        
+    
  
 if __name__ == "__main__":
     train_data, test_data, train_target, test_target = get_data()
     #part1(train_data)
     W = random.rand(784, 10)
     B = random.rand(1, 10)
-    Y = part2(train_data, W, B)
+    Y_total = part2(train_data, W, B)
     #print("Ex. softmax of first input = \n" + str(Y[:1]))
+    
 
-    derivatives = []
+    dWs = []
+    
     for digit in range(0,9):
         print(digit)
-        start_index = 0 if digit == 0 else digit-1
-        end_index = 1 if digit == 0 else digit
+        X, T, Y = generate(digit, Y_total, training =True) 
 
-        Y = Y[digit_to_indexPlusOne[start_index] : digit_to_indexPlusOne[end_index]]
-        X = train_data[digit_to_indexPlusOne[start_index] : digit_to_indexPlusOne[end_index]]
-        T = train_target[digit_to_indexPlusOne[start_index] : digit_to_indexPlusOne[end_index]] # get inputs for that digit
-        #print(T.sum(axis=digit-1)) # should be 0
-        #print(T.sum(axis=digit)) # should be big #
-        #print(T.sum(axis=digit+1)) # should be 0
+
         print(Y.shape) #(5958, 10) for digit = 2
-        print(T.shape) #(5958, 10)
-        print(X.shape) #(5958, 784)
+        print(X.shape) #(5958, 10)
+        print(T.shape) #(5958, 784)
 
-        derivatives.append(derivative(Y, T, X))
+        dWs.append(derivative(Y.T, T.T, X.T))
+
+    for dW in dWs:
+        print(dW.shape)
     
-    
-    print(derivatives)
-
-
-
-
