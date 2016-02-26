@@ -11,7 +11,7 @@ import urllib
 from numpy import random
 
 
-#import cPickle
+import cPickle
 
 import os
 from scipy.io import loadmat
@@ -98,7 +98,7 @@ def get_data():
     train_target = matrix(train_target)*(1/255.0) # dimensions = (60000, 10)
     test_target = matrix(test_target)*(1/255.0) # dimensions = (10000, 10)
     
-    print(digit_to_indexPlusOne)
+    #print(digit_to_indexPlusOne)
     print(digit_to_numInputs)
     #print(train_data.shape)
     #print(test_data.shape)
@@ -106,6 +106,23 @@ def get_data():
     #print(test_target.shape)
 
     return train_data, test_data, train_target, test_target
+
+def generate(digit, Y, training):
+    '''
+    Returns the training data and train targets for a certain digit.
+    
+    digit - digit that you want to get the data for
+    training - #bool representing if training / test data wanted
+    '''
+    if digit == 0:
+        (start, end) = (0,digit_to_indexPlusOne[0])  
+    else:
+        (start, end) = (digit_to_indexPlusOne[digit-1], 
+                            digit_to_indexPlusOne[digit])    
+    if (training):
+        return train_data[start:end], train_target[start:end], Y[start:end]
+    else: # testing
+        return test_data[start:end], test_target[start:end], Y[start:end]
 
 def part1(data_set):
     '''
@@ -144,7 +161,6 @@ def derivative(Y, T, X):
     
     dW has dimensions 10 x 784
     '''
-    
     return dot((Y - T), X.T)
     
 def part3(X, W, B):
@@ -158,23 +174,31 @@ def part3(X, W, B):
     pass
     #cost = -sum(targets*log(predictions))
  
-def generate(digit, Y, training):
-    '''
-    Returns the training data and train targets for a certain digit.
-    
-    digit - digit that you want to get the data for
-    training - #bool representing if training / test data wanted
-    '''
-    if digit == 0:
-        (start, end) = (0,digit_to_indexPlusOne[0])  
-    else:
-        (start, end) = (digit_to_indexPlusOne[digit-1], 
-                            digit_to_indexPlusOne[digit])    
-    if (training):
-        return train_data[start:end], train_target[start:end], Y[start:end]
-    else: # testing
-        return test_data[start:end], test_target[start:end], Y[start:end]
+
         
+def get_dWs(Y_total):
+    '''
+    Returns a list of 10 (10 x 784) matrices,
+    each representing the Ws for each digit
+    '''
+    dWs = []
+    
+    for digit in range(0,10):
+        X, T, Y = generate(digit, Y_total, training =True) 
+        dWs.append(derivative(Y.T, T.T, X.T))
+
+        #print(Y.shape) #(5958, 10) for digit = 2
+        #print(X.shape) #(5958, 10)
+        #print(T.shape) #(5958, 784)
+    
+    # debugging
+    i = 0
+    for dW in dWs: # should output 10 (10, 784)s (one for each digit)
+        print(i, dW.shape)
+        i += 1
+    #end debug
+    
+    return dWs
     
  
 if __name__ == "__main__":
@@ -185,20 +209,8 @@ if __name__ == "__main__":
     Y_total = part2(train_data, W, B)
     #print("Ex. softmax of first input = \n" + str(Y[:1]))
     
-
-    dWs = []
+    dWs = get_dWs(Y_total) # get derivatives of all weights
     
-    for digit in range(0,9):
-        print(digit)
-        X, T, Y = generate(digit, Y_total, training =True) 
 
-
-        print(Y.shape) #(5958, 10) for digit = 2
-        print(X.shape) #(5958, 10)
-        print(T.shape) #(5958, 784)
-
-        dWs.append(derivative(Y.T, T.T, X.T))
-
-    for dW in dWs:
-        print(dW.shape)
+    
     
