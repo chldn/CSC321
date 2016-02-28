@@ -36,12 +36,7 @@ def forward(x, W0, b0, W1, b1):
     output = softmax(L1)
     return L0, L1, output
     
-def cost(y, t):
-    '''
-    t - target 
-    y - output
-    '''
-    return -(1/60000.)*sum(t*log(y)) 
+
 
 def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
     '''Incomplete function for computing the gradient of the cross-entropy
@@ -54,6 +49,8 @@ def softmax(y):
     '''Return the output of the softmax function for the matrix of output y.
     y is an NxM matrix where N(rows) is the number of outputs for a single case, 
     and M(col) is the number of cases'''
+    if isnan((tile(sum(exp(y),0), (len(y),1)))).any():
+        print True
     return exp(y)/tile(sum(exp(y),0), (len(y),1))
             
 
@@ -224,13 +221,13 @@ def part5(train_data, train_target, init_W, init_B):
     return minimized
 
  
-def create_batches(k, train_data, train_target):
+def create_batches(k, data, target, size):
     '''
     Return a set of batches of size k, and a set of corresponding target values
 
     k - batch size
     '''
-    order = range(60000)
+    order = range(size)
     random.shuffle(order) #randomly shuffle the order of the training examples
     set_batch_data = [] #set of all batches of size k of training examples
     set_batch_target = [] #corresponding set of all batches target values
@@ -240,11 +237,11 @@ def create_batches(k, train_data, train_target):
         #grab first k numbers from order, delete them from order
         batch_inds, order = order[:k], order[k:]
         for ind in batch_inds:
-            batch_data.append(train_data[ind])
+            batch_data.append(data[ind])
 #             if len(batch_data)==2:
 #                 print shape(batch_data)
 #                 break
-            batch_target.append(train_target[ind])
+            batch_target.append(target[ind])
         set_batch_data.append(batch_data)
         set_batch_target.append(batch_target)
     return asarray(set_batch_data), array(set_batch_target)
@@ -260,34 +257,86 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     prev_W = init_W-10*EPS
     W = init_W.copy()
     B = init_B.copy()
-
+    b = 50
     
-    while norm(W - prev_W) >  EPS: # change in vost function isn't significant anymore -> Ws are good
+    i_total = 0
+    while (norm(W - prev_W) >  EPS) and (i_total < 500): # change in vost function isn't significant anymore -> Ws are good
+        print(norm(W - prev_W))
         i = 0   
         #create a randomized batch of size 50
-        X, T = create_batches(50, train_data, train_target)
+        X, T = create_batches(b, train_data, train_target, 60000)
         while i in range(len(X)):
-            Y = get_output_part2(X[i], W, B)
+            Y = get_output_part2(X[i], W, B) #MAYBE PROBLEM
             prev_W = W.copy()
 
             dW = derivative(Y.T, T[i].T, X[i].T)
-            W = W - (ones((10,784)) * (alpha*dW)).T
-            print(sum(dW))
-            
-            
-            dB = derivative_b(Y, T[i], 50).T
-            B = B - alpha*dB
+            #print(dW.shape)
+            #if (i%20 == 0):
+                #f = open('file'+ str(i), 'wb')
+                #pickle.dump(dW[8])
+                #print(W.T[6].shape)
+                #imshow(W.T[6].reshape((28, 28)))
+                #show()
+            W = W - (ones((10,784)) * (alpha*(1./b)*dW)).T
+            #print(sum(W))
+            #print(dW.shape)
+
+            dB = derivative_b(Y, T[i], b).T
+            B = B - (1./b)*alpha*dB
             
             if isnan(W).any():
                 break
-
-            print(i)
+            if (i%10 == 0):
+                print(i, cost(Y,T))
             i += 1
-    
-    return W
+        i_total+= 1200
+    return W, B
 
-#def check_performance():
-    #W_
+def check_performance(train_data, train_target, test_data, test_target, init_W, init_B):
+    W, B = part5(train_data, train_target, init_W, init_B)
+    b = 1000
+    X_set, T_set = create_batches(b, test_data, test_target, 10000)
+    print(X_set[0].shape)
+    print(T_set[0].shape)
+
+    #print(X.shape)
+    #print(T.shape)
+    #+print(X.shape)
+    #Y = dot(X, W) + B
+    Y = dot(X_set[0], W) + B
+    
+
+    #print(Y[:b])
+    #print(amax(Y))
+    for row in range(b):
+        not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
+        Y[row][not_max] = 0 # set all non_predictions to 0
+
+        the_max = Y[row] == amax(Y[row]) # get all non_prediction indices
+        Y[row][the_max] = 1 # set all non_predictions to 0
+
+        #print(Y[row])
+
+    #print(sum(T[3]))
+    #print(sum(Y[3]))
+    #prediction_correctness = T == Y
+    prediction_correctness = T_set[0] == Y
+
+    correct = 0
+    for input in range(b):
+        if all(prediction_correctness[input]):
+            correct+=1
+
+    total_performance = float(correct)/b
+    print(total_performance)
+
+    return total_performance
+
+    
+
+
+
+    
 
 def part7():
     '''
@@ -301,6 +350,14 @@ def part7():
     
     pass
 
+def cost(y, t):
+    '''
+    t - target 
+    y - output
+    '''
+    #return (1./60000)*(-sum(t*log(y)))
+    return -sum(t*log(y)) 
+
 def get_finite_diff(X, W, i, j, T):
     '''
     Returns dW using finite difference approximate of the gradient of the cost 
@@ -308,7 +365,8 @@ def get_finite_diff(X, W, i, j, T):
     '''
     
     h = zeros(W.shape)
-    diff = 0.001
+    diff = 0.0001
+
 
     h[i][j] = diff
     
@@ -319,7 +377,8 @@ def get_finite_diff(X, W, i, j, T):
     #print(cost(Y_less, T))
 
 
-    finite_diff = (cost(Y_plus, T) - cost(Y_less, T))/ 2*diff
+    #finite_diff = ((1./60000)*cost(Y_plus, T) - (1./60000)*cost(Y_less, T))/ diff**2
+    finite_diff = ((1./60000)*cost(Y_plus, T) - (1./60000)*cost(Y_less, T))/ (diff*2)
     
     return finite_diff
     
@@ -364,9 +423,9 @@ def finite_diff(W, B, Y, T):
  
 if __name__ == "__main__":
     #part1()
-    train_data, test_data, train_target, test_target = get_data()
-    W = (random.rand(784, 10)-0.5)*0.2
-    B = (random.rand(1, 10)-0.5)*0.2
+    train_data, test_data, train_target, test_target = get_data() 
+    W = (random.rand(784, 10)-0.5)*0.02
+    B = (random.rand(1, 10)-0.5)*0.02
 
     Y = get_output_part2(train_data, W, B)
     
@@ -377,10 +436,10 @@ if __name__ == "__main__":
     #plt.imshow(dWs[8].reshape(28,28))
     #plt.imshow(finite_diff(W, B, Y, T).reshape(28,28))
     #show()
-    #check_dWs(W, B, Y, dWs, T)
+    check_dWs(W, B, Y, dWs, T)
 
-    print(part5(train_data, train_target, W, B))
-
+    #print(part5(train_data, train_target, W, B))
+    check_performance(train_data, train_target, test_data, test_target, W, B)
     #print(dWs.shape)
     
     
