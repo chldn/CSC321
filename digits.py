@@ -63,6 +63,14 @@ def get_data():
     In addition, the expected/target outputs are put into the two lists train_target and test_target. 
     The indices of (train_data, train_target) and (test_data, test_target) are the same so we can
     match the actual outputs later on to measure performance.
+
+    Dimensions:
+    train_data : 60000 x 784
+    test_data : 10000 x 784
+
+    train_target : 60000 x 10
+    test_target : 10000 x 10
+
     '''
     #initiate lists for aggregate training and test arrays
     train_data = []
@@ -157,15 +165,15 @@ def get_output_part2(X, W, B):
    W - input of dimension 784 x 10
    B - input of dimension 1 x 10
    '''
-    
+    #print("p2 X", X)
+    #print("p2 W", W)
+    #print("p2 B", B)
     output = dot(X, W) + B # dimensions = (60000, 10) for train_data
     # print(softmax(output).shape)
     # print(softmax(output))
    
     return softmax(output)
  
-def gradient_descent(W, derivative):
-    pass
 
 def derivative(Y, T, X):
     '''
@@ -173,8 +181,15 @@ def derivative(Y, T, X):
     
     dW has dimensions 10 x 784
     '''
-    
     return dot((Y - T), X.T)
+
+def derivative_b(Y, T, size):
+    #print("y ", Y.shape)
+    #print("t ", T.shape)
+    #print("ones", ones((size, 1)).T.shape)
+    #print("dot", dot((Y-T).T, ones((size,1)) ))
+    return dot((Y-T).T, ones((size,1)) )
+    
     
 def part3(X, W, B):
     '''
@@ -192,33 +207,6 @@ def part3(X, W, B):
 def get_dWs(Y, X, T):
     return derivative(Y.T, T.T, X.T)
 
-
-def get_dWs_old(Y_total):
-    '''
-    Returns a list of 10 (10 x 784) matrices,
-    each representing the Ws for each digit
-    '''
-
-    dWs = []
-    total_dW = []
-
-    for digit in range(0,10):
-
-        #print(digit)
-        X, T, Y = generate(digit, Y_total, training =True) 
-
-        d = derivative(Y.T, T.T, X.T)
-        dWs.append(d)
-        if digit == 0:
-            total_dW = d
-        else:
-            add(total_dW, d) 
-    
-    
-    #print(total_dW.shape)
-    #print(sum(total_dW))
-    return asarray(total_dW)
-
         
 def part5(train_data, train_target, init_W, init_B):
     '''
@@ -232,16 +220,15 @@ def part5(train_data, train_target, init_W, init_B):
     updates to the weights and biases during training
    
     '''
-    #create a randomized batch of size 50
-    X, T = create_batches(50, train_data, train_target)
-    #start out with some randomized weights
-    minimized = minibatch_grad_descent(X, T, init_W, init_B)
+    minimized = minibatch_grad_descent(train_data, train_target, init_W, init_B)
     return minimized
 
  
 def create_batches(k, train_data, train_target):
     '''
     Return a set of batches of size k, and a set of corresponding target values
+
+    k - batch size
     '''
     order = range(60000)
     random.shuffle(order) #randomly shuffle the order of the training examples
@@ -260,10 +247,10 @@ def create_batches(k, train_data, train_target):
             batch_target.append(train_target[ind])
         set_batch_data.append(batch_data)
         set_batch_target.append(batch_target)
-    return set_batch_data, set_batch_target
+    return asarray(set_batch_data), array(set_batch_target)
     
-   
-def minibatch_grad_descent(X, T, init_W, init_B):
+
+def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     '''
     Compute the gradient descent given a minibatch of the training data (X),
     the target values for that data (Y), and the initial weights (init_W)
@@ -272,16 +259,35 @@ def minibatch_grad_descent(X, T, init_W, init_B):
     EPS = 1e-5   #EPS = 10**(-5)
     prev_W = init_W-10*EPS
     W = init_W.copy()
+    B = init_B.copy()
+
     
-    while norm(W - prev_W) >  EPS:
+    while norm(W - prev_W) >  EPS: # change in vost function isn't significant anymore -> Ws are good
         i = 0   
+        #create a randomized batch of size 50
+        X, T = create_batches(50, train_data, train_target)
         while i in range(len(X)):
             Y = get_output_part2(X[i], W, B)
             prev_W = W.copy()
-            W = W - (ones((10,784)) * (alpha*derivative(asarray(Y).T, asarray(T[i]).T, asarray(X[i]).T ))).T
+
+            dW = derivative(Y.T, T[i].T, X[i].T)
+            W = W - (ones((10,784)) * (alpha*dW)).T
+            print(sum(dW))
+            
+            
+            dB = derivative_b(Y, T[i], 50).T
+            B = B - alpha*dB
+            
+            if isnan(W).any():
+                break
+
+            print(i)
             i += 1
-   
+    
     return W
+
+#def check_performance():
+    #W_
 
 def part7():
     '''
@@ -369,9 +375,6 @@ if __name__ == "__main__":
     dWs = get_dWs(Y, X, T) # get derivatives of all weights
     
     #plt.imshow(dWs[8].reshape(28,28))
-
-
-
     #plt.imshow(finite_diff(W, B, Y, T).reshape(28,28))
     #show()
     #check_dWs(W, B, Y, dWs, T)
