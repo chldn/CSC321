@@ -158,7 +158,8 @@ def single_layer_network(X, W, B):
     #print("p2 X", X)
     #print("p2 W", W)
     #print("p2 B", B)
-    output = dot(X, W) + B # dimensions = (60000, 10) for train_data
+    # add B for each row of the matrix 
+    output = X*W + B # dimensions = (60000, 10) for train_data
     # print(softmax(output).shape)
     # print(softmax(output))
    
@@ -178,12 +179,7 @@ def derivative(Y, T, X):
     @Returns: 
     dW has dimensions 10 x 784
     '''
-    return dot((Y - T), X.T)*10
-
-
-def get_dWs(Y, X, T):
-    return derivative(Y.T, T.T, X.T)
-
+    return dot((Y - T).T, X)
 
 def derivative_b(Y, T, size):
     return dot((Y-T).T, ones((size,1)) )
@@ -215,7 +211,7 @@ def get_finite_diff(X, W, i, j, T):
     #print(cost(Y_less, T))
 
     #finite_diff = ((1./60000)*cost(Y_plus, T) - (1./60000)*cost(Y_less, T))/ diff**2
-    finite_diff = ((1./60000)*cost(Y_plus, T) - (1./60000)*cost(Y_less, T))/ (diff*2)
+    finite_diff = (cost(Y_plus, T) - cost(Y_less, T))/ (diff*2)
     
     return finite_diff
 
@@ -323,10 +319,10 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
 
         dW = derivative(Y.T, T[i].T, X[i].T) # find Cost derivative w respect to Wij
         #print((ones((10,784)) * (alpha*(1./b)*dW)).T)
-        W = W - (ones((10,784)) * (alpha*(1./b)*dW)).T
+        W = W - (alpha*dW) # W is transposed - (784 x 10) 
 
         dB = derivative_b(Y, T[i], b).T
-        B = B - (1./b)*alpha*dB
+        B = B - alpha*dB
         #W = W - dW.T
         #B = B - dB
 
@@ -409,7 +405,7 @@ if __name__ == "__main__":
     Y = single_layer_network(X, W, B)
 
     # PART 3
-    dWs = get_dWs(Y, X, T) # get derivatives of all weights
+    dWs = derivative(Y, T, X) # get derivatives of all weights
     
     #plt.imshow(dWs[8].reshape(28,28))
     #plt.imshow(finite_diff(W, B, Y, T).reshape(28,28))
