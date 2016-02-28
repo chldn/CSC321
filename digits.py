@@ -173,9 +173,7 @@ def derivative(Y, T, X):
     
     dW has dimensions 10 x 784
     '''
-    #print(X.shape)
-    #print(T.shape)
-    #print(Y.shape)
+    
     return dot((Y - T), X.T)
     
 def part3(X, W, B):
@@ -222,7 +220,7 @@ def get_dWs_old(Y_total):
     return asarray(total_dW)
 
         
-def part5(train_data, train_target):
+def part5(train_data, train_target, init_W, init_B):
     '''
     minimize your the cost function using mini-batch gradient descent, using
     the training set provided to you
@@ -235,10 +233,9 @@ def part5(train_data, train_target):
    
     '''
     #create a randomized batch of size 50
-    X, Y = create_batches(50, train_data, train_target)
+    X, T = create_batches(50, train_data, train_target)
     #start out with some randomized weights
-    init_W = random.rand(784, 10)
-    minimized = minibatch_grad_descent(X[0], Y[0], init_W)
+    minimized = minibatch_grad_descent(X, T, init_W, init_B)
     return minimized
 
  
@@ -261,12 +258,12 @@ def create_batches(k, train_data, train_target):
 #                 print shape(batch_data)
 #                 break
             batch_target.append(train_target[ind])
-        set_batch_data.append(matrix(batch_data))
-        set_batch_target.append(matrix(batch_target))
+        set_batch_data.append(batch_data)
+        set_batch_target.append(batch_target)
     return set_batch_data, set_batch_target
     
    
-def minibatch_grad_descent(X, Y, init_W):
+def minibatch_grad_descent(X, T, init_W, init_B):
     '''
     Compute the gradient descent given a minibatch of the training data (X),
     the target values for that data (Y), and the initial weights (init_W)
@@ -275,9 +272,14 @@ def minibatch_grad_descent(X, Y, init_W):
     EPS = 1e-5   #EPS = 10**(-5)
     prev_W = init_W-10*EPS
     W = init_W.copy()
+    
     while norm(W - prev_W) >  EPS:
-        prev_W = W.copy()
-        W -= alpha*derivative(Y, W, X)
+        i = 0   
+        while i in range(len(X)):
+            Y = get_output_part2(X[i], W, B)
+            prev_W = W.copy()
+            W = W - (ones((10,784)) * (alpha*derivative(asarray(Y).T, asarray(T[i]).T, asarray(X[i]).T ))).T
+            i += 1
    
     return W
 
@@ -374,7 +376,7 @@ if __name__ == "__main__":
     #show()
     #check_dWs(W, B, Y, dWs, T)
 
-    print(part5(train_data, train_target))
+    print(part5(train_data, train_target, W, B))
 
     #print(dWs.shape)
     
