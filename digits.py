@@ -303,11 +303,11 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     X, T = create_batches(b, train_data, train_target, 60000)
     # X.shape = (1200, 50, 784)
     # T.shape = (1200, 50, 10)
-   Y
+    Y = []
     for batch in range(1200): # for each batch of 50 images
         #print(i)
        
-        Y = single_layer_network(X[batch], W, B, num_inputs=50) # Y.shape = (50, 10)
+        Y.append(single_layer_network(X[batch], W, B, num_inputs=50)) # Y.shape = (50, 10)
         #if batch == 0:
         #print("batch == 0")
         #if X
@@ -317,12 +317,12 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
 #                 plt.imshow(X[batch][i].reshape((28, 28)))
 #                 show()
        
-        dW = derivative(Y, T[batch], X[batch]) # shape = (784, 10)
+        dW = derivative(Y[batch], T[batch], X[batch]) # shape = (784, 10)
 #         plt.imshow(dW[6].reshape((28, 28)))
 #         show()
         W = W - (alpha*dW)
  
-        dB = derivative_b(Y, T[batch], b).T
+        dB = derivative_b(Y[batch], T[batch], b).T
         B = B - alpha*dB
  
 #         if (batch%10 == 0):
@@ -330,11 +330,11 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
 #             show()
  
         # cost function increases
-        if (batch%20 == 0):
-            plt.imshow(W[3].reshape((28,28)))
-            show()
+#         if (batch%50 == 0):
+#             plt.imshow(W[3].reshape((28,28)))
+#             show()
             #print(i, cost(Y,T))
-        print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
+        print(batch, cost(Y,T[:batch+1]), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
         prev_W = W.copy()
        
     return W, B
@@ -348,14 +348,14 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
    '''
     W, B = minibatch_grad_descent(train_data, train_target, init_W, init_B)
  
- 
+    T = test_target
     X = test_data
     Y = single_layer_network(X, W, B, num_inputs=10000)
     print shape(X)
     for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
- 
+                
         the_max = Y[row] == amax(Y[row]) # get all prediction indices
         Y[row][the_max] = 1 # set all predictions to 1
    
@@ -368,6 +368,7 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
             #display
             correct_images.append(input)
         else:
+            #print T[input], Y[input]
             incorrect_images.append(input)
    
     # make a grid of correct images just like Part 1
