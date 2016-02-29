@@ -167,13 +167,14 @@ def derivative(Y, T, X):
     '''    
     Return the gradient of the crossentropy cost function with respect to the
     parameters of the network (W and b), for a given subset of training cases.
-    X - input of dimension 60000 x 784
-    W - input of dimension 784 x 10
-    B - input of dimension 1 x 10
+    X - input of dimension n x 784
+    T - input of dimension n x 10
+    Y - input of dimension n x 10
     
     @Returns: 
     dW has dimensions 10 x 784
     '''
+    #print("Y: ", shape(Y), "T: ", shape(T),"X: ", shape(X))
     return np.dot((Y-T).T, X)
 
 def derivative_b(Y, T, size):
@@ -283,7 +284,6 @@ def create_batches(k, data, target, size):
         set_batch_target.append(batch_target)
     return asarray(set_batch_data), array(set_batch_target)
 
-
 def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     '''
     Calculates gradient descent with respect to W and B in mini batches of 50.
@@ -292,7 +292,7 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     W : 10 x 784
     B : 10 x 1
     '''
-    alpha = 0.0001
+    alpha = 0.001
     EPS = 1e-5
     
     W = init_W.copy()
@@ -308,16 +308,26 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
         #print(i)
         
         Y = single_layer_network(X[batch], W, B, num_inputs=50) # Y.shape = (50, 10)
+        #if batch == 0:
+        #print("batch == 0")
+        #if X
+#         for i in range(b):
+#             if T[batch][i][3] == 1:
+#                 print(T[batch][i])
+#                 plt.imshow(X[batch][i].reshape((28, 28)))
+#                 show()
         
         dW = derivative(Y, T[batch], X[batch]) # shape = (784, 10)
+#         plt.imshow(dW[6].reshape((28, 28)))
+#         show()
         W = W - (alpha*dW) 
 
         dB = derivative_b(Y, T[batch], b).T
         B = B - alpha*dB
 
-        if (batch%20 == 0):
-            imshow(W[5].reshape((28, 28)))
-            show()
+#         if (batch%10 == 0):
+#             imshow(W[1].reshape((28, 28)))
+#             show()
 
         # cost function increases
         #if (i%20 == 0): 
@@ -325,8 +335,9 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
             #show()
             #print(i, cost(Y,T))
             
-        #print(i, cost(Y,T))
+        #print(batch, cost(Y,T))
         prev_W = W.copy()
+        
     return W, B
 
 def check_performance(train_data, train_target, test_data, test_target, init_W, init_B):
@@ -336,11 +347,12 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
     @returns:
     total_peformance - percentage of correctness
     '''
-    W, B = part5(train_data, train_target, init_W, init_B)
+    W, B = minibatch_grad_descent(train_data, train_target, init_W, init_B)
+
 
     X = test_data
     Y = single_layer_network(X, W, B, num_inputs=10000)
-    
+    print shape(X)
     for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
@@ -349,17 +361,41 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
         Y[row][the_max] = 1 # set all predictions to 1
     
     correct = 0
+    correct_images = []
+    incorrect_images = []
     for input in range(10000):        
         if (T[input] == Y[input]).all():
             correct+=1
-        
+            #display
+            correct_images.append(input)
+        else:
+            incorrect_images.append(input)
+    
+    # make a grid of correct images just like Part 1
+    for i in range(20):
+        image = X[correct_images[i]]
+        reshaped = reshape(image, [28, 28])
+        subplot(4, 5, i)
+        plt.imshow(reshaped)
+        plt.axis('off')
+    plt.savefig('correct_images.jpg')
+    
+    # grid of incorrect images
+    for i in range(10):
+        image = X[incorrect_images[i]]
+        reshaped = reshape(image, [28, 28])
+        subplot(2, 5, i)
+        plt.imshow(reshaped)
+        plt.axis('off')
+    plt.savefig('incorrect_images.jpg')
+    
     total_performance = float(correct)/10000
     print(total_performance)
 
     return total_performance
 
 
-def part5(train_data, train_target, init_W, init_B):
+def part5(train_data, train_target, test_data, test_target, init_W, init_B):
     '''
     minimize your the cost function using mini-batch gradient descent, using
     the training set provided to you
@@ -372,6 +408,7 @@ def part5(train_data, train_target, init_W, init_B):
    
     '''
     minimized = minibatch_grad_descent(train_data, train_target, init_W, init_B)
+    check_performance(train_data, train_target, test_data, test_target, W, B)
     return minimized
 
 
@@ -396,11 +433,11 @@ if __name__ == "__main__":
     #show()
     
     # PART 4
-    part4(W, B, Y, dWs, T)
+    #part4(W, B, Y, dWs, T)
 
     # PART 5
-    #print(part5(train_data, train_target, W, B))
     check_performance(train_data, train_target, test_data, test_target, W, B)
+    #part5(train_data, train_target, test_data, test_target, W, B)
     #print(dWs.shape)
     
 
