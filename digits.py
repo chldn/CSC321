@@ -1,4 +1,5 @@
 from pylab import *
+import numpy as np
 from numpy import *
 import matplotlib.pyplot as plt
 import matplotlib.cbook as cbook
@@ -11,7 +12,7 @@ import urllib
 from numpy import random
 
 
-import cPickle
+#import cPickle
 
 import os
 from scipy.io import loadmat
@@ -31,11 +32,9 @@ def get_data():
     In addition, the expected/target outputs are put into the two lists train_target and test_target. 
     The indices of (train_data, train_target) and (test_data, test_target) are the same so we can
     match the actual outputs later on to measure performance.
-
     @return:         Dimensions:
     train_data :     60000 x 784
     test_data :     0000 x 784
-
     train_target :     60000 x 10
     test_target :     10000 x 10
     '''
@@ -75,8 +74,10 @@ def get_data():
         digit_to_numInputs[digit] = train_size
 
     # make all lists of aggregated arrays into a matrix & scale it 
-    train_data = array(train_data)*(1/255.0) # dimensions = (60000, 784)
-    test_data = array(test_data)*(1/255.0) # dimensions = (10000, 784)
+    train_data = array(train_data)*(255/255.0) # dimensions = (60000, 784)
+    train_data = train_data.astype(float32)/255.0
+    test_data = array(test_data)*(255/255.0) # dimensions = (10000, 784)
+    test_data = test_data.astype(float32)/255.0
     train_target = array(train_target) # dimensions = (60000, 10)
     test_target = array(test_target) # dimensions = (10000, 10)
     
@@ -96,7 +97,6 @@ def generate(digit, Y, training):
     
     digit - digit that you want to get the data for
     training - #bool representing if training / test data wanted
-
     Returns: (X, T, Y)
     '''
     if digit == 0:
@@ -131,7 +131,7 @@ def cost(y, t):
     t - target 
     y - output
     '''
-    #return (1./60000)*(-sum(t*log(y)))
+    
     return -sum(t*log(y)) 
 
 
@@ -139,14 +139,13 @@ def softmax(y):
     '''Return the output of the softmax function for the matrix of output y.
     y is an NxM matrix where N(rows) is the number of outputs for a single case, 
     and M(col) is the number of cases
-
     @return:    Dimensions:
     softmax:     1 x 10'''
     
     return exp(y)/tile(sum(exp(y),0), (len(y),1))
 
 # PART 2 - implement single layer network
-def single_layer_network(X, W, B):
+def single_layer_network(X, W, B, num_inputs):
     '''
    This is the basis of a simple neural network.
    Return o's as linear combinations of the input X's (i.e. activation function is the identity)
@@ -155,14 +154,11 @@ def single_layer_network(X, W, B):
    W - input of dimension 784 x 10
    B - input of dimension 1 x 10
    '''
-    #print("p2 X", X)
-    #print("p2 W", W)
-    #print("p2 B", B)
-    # add B for each row of the matrix 
-    output = X*W + B # dimensions = (60000, 10) for train_data
-    # print(softmax(output).shape)
-    # print(softmax(output))
-   
+    #print("p2 X", X.shape)
+    #print("p2 W", W.shape)
+    B = tile(B, (num_inputs,1))
+    output = dot(X, W.T) + B # dimensions = (60000, 10) for train_data
+
     return softmax(output)
 
 
@@ -175,14 +171,13 @@ def derivative(Y, T, X):
     W - input of dimension 784 x 10
     B - input of dimension 1 x 10
     
-
     @Returns: 
     dW has dimensions 10 x 784
     '''
-    return dot((Y - T).T, X)
+    return np.dot((Y-T).T, X)
 
 def derivative_b(Y, T, size):
-    return dot((Y-T).T, ones((size,1)) )
+    return np.dot((Y-T).T, ones((size,1)) )
 
 
 # PART 4 - FINITE DIFFERENTIAL CHECKING
@@ -200,27 +195,26 @@ def get_finite_diff(X, W, i, j, T):
     with respect to W, at coordinate i
     '''
     h = zeros(W.shape)
-    diff = 0.0001
+    diff = 0.001
 
-    h[i][j] = diff
+    h[j][i] = diff
     
-    Y_plus = single_layer_network(X, W+h, B)
-    Y_less = single_layer_network(X, W-h, B)
+    Y_plus = single_layer_network(X, W+h, B, num_inputs=60000)
+    Y_less = single_layer_network(X, W-h, B, num_inputs=60000)
     
     #print(cost(Y_plus, T))
-    #print(cost(Y_less, T))
-
-    #finite_diff = ((1./60000)*cost(Y_plus, T) - (1./60000)*cost(Y_less, T))/ diff**2
+    #print(cost(Y_less, T))    
+    
     finite_diff = (cost(Y_plus, T) - cost(Y_less, T))/ (diff*2)
     
     return finite_diff
+
 
     
 def check_dWs(W, B, Y_total, dWs, T):
     '''
     This function is used to check the neural network gradient against the gradient found 
     through calculating the finite differentials.
-
     '''
     # get dWs from gradient used to check with finite diff
     # outputs for rand_dn = (dW, j, i), where j is the digit, i is the index of input
@@ -268,10 +262,9 @@ def finite_diff(W, B, Y, T):
 def create_batches(k, data, target, size):
     '''
     Return a set of batches of size k, and a set of corresponding target values
-
     k - batch size
     '''
-    order = range(size)
+    order = list(range(size))
     random.shuffle(order) #randomly shuffle the order of the training examples
     set_batch_data = [] #set of all batches of size k of training examples
     set_batch_target = [] #corresponding set of all batches target values
@@ -295,12 +288,11 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     '''
     Calculates gradient descent with respect to W and B in mini batches of 50.
     This runs through the 60000 images in of 1200 iterations of batch size 50.
-
     @returns:
     W : 10 x 784
     B : 10 x 1
     '''
-    alpha = 0.01
+    alpha = 0.0001
     EPS = 1e-5
     
     W = init_W.copy()
@@ -309,71 +301,63 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
 
 
     X, T = create_batches(b, train_data, train_target, 60000)
-    print(X.shape)
-    print(T.shape)
-    X_prev = []
-    for i in range(1200): # for each batch of 50 images
-        print(i)
+    # X.shape = (1200, 50, 784)
+    # T.shape = (1200, 50, 10)
+    
+    for batch in range(1200): # for each batch of 50 images
+        #print(i)
         
-        Y = single_layer_network(X[i], W, B) # calculate output based on the batch X[i] on Weights and Bias
+        Y = single_layer_network(X[batch], W, B, num_inputs=50) # Y.shape = (50, 10)
+        
+        dW = derivative(Y, T[batch], X[batch]) # shape = (784, 10)
+        W = W - (alpha*dW) 
 
-        dW = derivative(Y.T, T[i].T, X[i].T) # find Cost derivative w respect to Wij
-        #print((ones((10,784)) * (alpha*(1./b)*dW)).T)
-        W = W - (alpha*dW) # W is transposed - (784 x 10) 
-
-        dB = derivative_b(Y, T[i], b).T
+        dB = derivative_b(Y, T[batch], b).T
         B = B - alpha*dB
-        #W = W - dW.T
-        #B = B - dB
 
-        if (i%20 == 0):
-            imshow(W.T[5].reshape((28, 28)))
+        if (batch%20 == 0):
+            imshow(W[5].reshape((28, 28)))
             show()
 
         # cost function increases
-        if (i%20 == 0): 
-            print(i, cost(Y,T), dW)
-        
+        #if (i%20 == 0): 
+            #plt.imshow(W.reshape((28,28))
+            #show()
+            #print(i, cost(Y,T))
+            
+        #print(i, cost(Y,T))
         prev_W = W.copy()
     return W, B
-
 
 def check_performance(train_data, train_target, test_data, test_target, init_W, init_B):
     '''
     Goes through test set it batch size = 1000.
     Calculates the correctness of each test case, and outputs the total performance.
-
     @returns:
     total_peformance - percentage of correctness
     '''
     W, B = part5(train_data, train_target, init_W, init_B)
-    b = 1000
-    X_set, T_set = create_batches(b, test_data, test_target, 10000)
-    #print(X_set[0].shape)
-    #print(T_set[0].shape)
 
-    Y = dot(X_set[0], W) + B
+    X = test_data
+    Y = single_layer_network(X, W, B, num_inputs=10000)
     
-
-    for row in range(b):
+    for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
 
-        the_max = Y[row] == amax(Y[row]) # get all non_prediction indices
-        Y[row][the_max] = 1 # set all non_predictions to 1
-
-
-    prediction_correctness = T_set[0] == Y
-
+        the_max = Y[row] == amax(Y[row]) # get all prediction indices
+        Y[row][the_max] = 1 # set all predictions to 1
+    
     correct = 0
-    for input in range(b):
-        if all(prediction_correctness[input]):
+    for input in range(10000):        
+        if (T[input] == Y[input]).all():
             correct+=1
-
-    total_performance = float(correct)/b
+        
+    total_performance = float(correct)/10000
     print(total_performance)
 
     return total_performance
+
 
 def part5(train_data, train_target, init_W, init_B):
     '''
@@ -396,13 +380,13 @@ if __name__ == "__main__":
 
     train_data, test_data, train_target, test_target = get_data() 
     
-    W = (random.rand(784, 10)-0.5)*0.02
+    W = (random.rand(10, 784)-0.5)*0.02
     B = (random.rand(1, 10)-0.5)*0.02
     X = train_data
     T = train_target
 
     # PART 2
-    Y = single_layer_network(X, W, B)
+    Y = single_layer_network(X, W, B, num_inputs=60000)
 
     # PART 3
     dWs = derivative(Y, T, X) # get derivatives of all weights
