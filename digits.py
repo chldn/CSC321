@@ -4,8 +4,8 @@ from numpy import *
 import matplotlib.pyplot as plt
 import matplotlib.cbook as cbook
 import time
-from scipy.misc import imread
-from scipy.misc import imresize
+#from scipy.misc import imread
+#from scipy.misc import imresize
 import matplotlib.image as mpimg
 from scipy.ndimage import filters
 import urllib
@@ -131,10 +131,9 @@ def cost(y, t):
    t - target
    y - output
    '''
-   
     return -sum(t*log(y))
  
- 
+
 def softmax(y):
     '''Return the output of the softmax function for the matrix of output y.
    y is an NxM matrix where N(rows) is the number of outputs for a single case,
@@ -145,7 +144,7 @@ def softmax(y):
     return exp(y)/tile(sum(exp(y),0), (len(y),1))
  
 # PART 2 - implement single layer network
-def single_layer_network(X, W, B, num_inputs):
+def single_forward(X, W, B, num_inputs):
     '''
   This is the basis of a simple neural network.
   Return o's as linear combinations of the input X's (i.e. activation function is the identity)
@@ -181,16 +180,7 @@ def derivative_b(Y, T, size):
     return np.dot((Y-T).T, ones((size,1)) )
  
  
-# PART 4 - FINITE DIFFERENTIAL CHECKING
-def part4(W, B, Y, dWs, T):
-    '''
-   Verifies tat Part 3 runs correctly by computing with derivative functino and with finite-difference
-   approximation for 5 coordinates of W and b.
-   '''
-    check_dWs(W, B, Y, dWs, T)
- 
- 
-def get_finite_diff(X, W, i, j, T):
+def get_finite_diff(X, W, B, i, j, T):
     '''
    Returns dW using finite difference approximate of the gradient of the cost
    with respect to W, at coordinate i
@@ -200,8 +190,8 @@ def get_finite_diff(X, W, i, j, T):
  
     h[j][i] = diff
    
-    Y_plus = single_layer_network(X, W+h, B, num_inputs=60000)
-    Y_less = single_layer_network(X, W-h, B, num_inputs=60000)
+    Y_plus = single_forward(X, W+h, B, num_inputs=60000)
+    Y_less = single_forward(X, W-h, B, num_inputs=60000)
    
     #print(cost(Y_plus, T))
     #print(cost(Y_less, T))    
@@ -212,8 +202,11 @@ def get_finite_diff(X, W, i, j, T):
  
  
    
-def check_dWs(W, B, Y_total, dWs, T):
+def check_dWs(X, W, B, Y_total, dWs, T):
     '''
+   Verifies tat Part 3 runs correctly by computing with derivative functino and with finite-difference
+   approximation for 5 coordinates of W and b.
+
    This function is used to check the neural network gradient against the gradient found
    through calculating the finite differentials.
    '''
@@ -229,11 +222,11 @@ def check_dWs(W, B, Y_total, dWs, T):
     #print(dWs[0][13])
     gradient_dWs = (rand_d1[0], rand_d2[0], rand_d3[0], rand_d4[0], rand_d5[0])
  
-    fin_diff_d1 = get_finite_diff(X, W, rand_d1[2], 0, T)
-    fin_diff_d2 = get_finite_diff(X, W, rand_d2[2], 3, T)
-    fin_diff_d3 = get_finite_diff(X, W, rand_d3[2], 6, T)
-    fin_diff_d4 = get_finite_diff(X, W, rand_d4[2], 7, T)
-    fin_diff_d5 = get_finite_diff(X, W, rand_d5[2], 9, T)
+    fin_diff_d1 = get_finite_diff(X, W, B, rand_d1[2], 0, T)
+    fin_diff_d2 = get_finite_diff(X, W, B, rand_d2[2], 3, T)
+    fin_diff_d3 = get_finite_diff(X, W, B, rand_d3[2], 6, T)
+    fin_diff_d4 = get_finite_diff(X, W, B, rand_d4[2], 7, T)
+    fin_diff_d5 = get_finite_diff(X, W, B, rand_d5[2], 9, T)
  
     fin_diff_dWs = (fin_diff_d1, fin_diff_d2, fin_diff_d3, fin_diff_d4, fin_diff_d5)
  
@@ -282,9 +275,10 @@ def create_batches(k, data, target, size):
             batch_target.append(target[ind])
         set_batch_data.append(batch_data)
         set_batch_target.append(batch_target)
+        
     return asarray(set_batch_data), array(set_batch_target)
  
-def minibatch_grad_descent(train_data, train_target, init_W, init_B):
+def minibatch_grad_descent_single(train_data, train_target, init_W, init_B):
     '''
    Calculates gradient descent with respect to W and B in mini batches of 50.
    This runs through the 60000 images in of 1200 iterations of batch size 50.
@@ -299,15 +293,20 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
     B = init_B.copy()
     b = 50
  
- 
+    costs = []
+    perf_rates = []
+    
+    Y = []
+    
     X, T = create_batches(b, train_data, train_target, 60000)
     # X.shape = (1200, 50, 784)
     # T.shape = (1200, 50, 10)
-    Y = []
+   
     for batch in range(1200): # for each batch of 50 images
         #print(i)
-       
-        Y.append(single_layer_network(X[batch], W, B, num_inputs=50)) # Y.shape = (50, 10)
+        Y.append(list(single_forward(X[batch], W, B, num_inputs=50))) # Y.shape = (batch, 50, 10)
+        #print(asarray(Y).shape)
+        
         #if batch == 0:
         #print("batch == 0")
         #if X
@@ -329,15 +328,29 @@ def minibatch_grad_descent(train_data, train_target, init_W, init_B):
 #             imshow(W[1].reshape((28, 28)))
 #             show()
  
-        # cost function increases
-#         if (batch%50 == 0):
-#             plt.imshow(W[3].reshape((28,28)))
-#             show()
+        #if (batch%20 == 0):
+        #    plt.imshow(W[3].reshape((28,28)))
+        #    show()
             #print(i, cost(Y,T))
-        print(batch, cost(Y,T[:batch+1]), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
+        #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
+
+        if batch == 0:
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
+            costs.append(cost(asarray(Y)[0],T[0]))
+            perf_rates.append(mean(argmax(T[0], 1) == argmax(Y, 2)) )
+        else:
+            y_length = len(Y)
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
+            costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
+            perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
+            
         prev_W = W.copy()
+
        
-    return W, B
+#         costs.append(cost(Y,T[batch])/(batch+1))
+#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
+        
+    return (W, B, costs, perf_rates)
  
 def check_performance(train_data, train_target, test_data, test_target, init_W, init_B):
     '''
@@ -346,12 +359,12 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
    @returns:
    total_peformance - percentage of correctness
    '''
-    W, B = minibatch_grad_descent(train_data, train_target, init_W, init_B)
+    W, B, costs, perf_rates = minibatch_grad_descent_single(train_data, train_target, init_W, init_B)
  
     T = test_target
     X = test_data
-    Y = single_layer_network(X, W, B, num_inputs=10000)
-    print shape(X)
+    Y = single_forward(X, W, B, num_inputs=10000)
+    #print shape(X)
     for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
@@ -370,7 +383,7 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
         else:
             #print T[input], Y[input]
             incorrect_images.append(input)
-   
+    
     # make a grid of correct images just like Part 1
     for i in range(20):
         image = X[correct_images[i]]
@@ -379,6 +392,7 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
         plt.imshow(reshaped)
         plt.axis('off')
     plt.savefig('correct_images.jpg')
+    plt.close()
    
     # grid of incorrect images
     for i in range(10):
@@ -388,13 +402,32 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
         plt.imshow(reshaped)
         plt.axis('off')
     plt.savefig('incorrect_images.jpg')
-   
+    plt.close()
+    
     total_performance = float(correct)/10000
     print(total_performance)
  
     return total_performance
  
- 
+def graph_performance(num_updates, costs, perf_rates):
+    updates = range(1, num_updates+1)
+
+    plt.plot(updates, costs, 'ro')
+    plt.title("Iteration Vs. Cross-Entropy Cost")
+    plt.xlabel('Iteration')
+    plt.ylabel('Cross-Entropy Cost')
+    plt.axis([0, max(updates) + 2, 0, max(costs) + 10])
+    plt.savefig('iteration_to_cost.jpg')
+
+    plt.plot(updates, perf_rates)
+    plt.title("Iteration Vs. Classification Performance")
+    plt.xlabel('Iteration')
+    plt.ylabel('Classification Performance')
+    plt.axis([0, max(updates) + 2, 0, max(perf_rates) + 0.1])
+    plt.savefig('iteration_to_perf.jpg')
+    
+
+
 def part5(train_data, train_target, test_data, test_target, init_W, init_B):
     '''
    minimize your the cost function using mini-batch gradient descent, using
@@ -407,38 +440,252 @@ def part5(train_data, train_target, test_data, test_target, init_W, init_B):
    updates to the weights and biases during training
  
    '''
-    minimized = minibatch_grad_descent(train_data, train_target, init_W, init_B)
-    check_performance(train_data, train_target, test_data, test_target, W, B)
-    return minimized
+    (optimized_W, optimized_B, costs, perf_rates)  = minibatch_grad_descent_single(train_data, train_target, init_W, init_B)
+    check_performance(train_data, train_target, test_data, test_target, optimized_W, optimized_B)
+    
+    # graph performance
+    num_updates = 1200
+    graph_performance(num_updates, costs, perf_rates)
+    
+def part6():
+    
+    for i in range(10):
+        if (batch%10 == 0):
+            plt.imshow(W[i].reshape((28,28)))
+            show()
+
+def single_layer_network(train_data, test_data, train_target, test_target):
+  W = (random.rand(10, 784)-0.5)*0.02
+  B = (random.rand(1, 10)-0.5)*0.02
+  X = train_data
+  T = train_target
+ 
+  # PART 2
+  Y = single_forward(X, W, B, num_inputs=60000)
+ 
+  # PART 3
+  dWs = derivative(Y, T, X) # get derivatives of all weights
+   
+  # PART 4
+  check_dWs(X, W, B, Y, dWs, T)
+ 
+  # PART 5 - Gradient Descent, checks performances, graphs of Iterations vs. Cost & Performance
+  part5(train_data, train_target, test_data, test_target, W, B)
+    
+# extra - havne't gotten here yet
+def minibatch_grad_descent_multi(train_data, train_target, init_W, init_B):
+    alpha = 0.001
+    EPS = 1e-5
+   
+    W = init_W.copy()
+    B = init_B.copy()
+    b = 50
+ 
+    costs = []
+    perf_rates = []
+    
+    Y = []
+    
+    X, T = create_batches(b, train_data, train_target, 60000)
+    # X.shape = (1200, 50, 784)
+    # T.shape = (1200, 50, 10)
+   
+    for batch in range(1200): # for each batch of 50 images
+        Y.append(list(forward(X[batch], W0, b0, W1, b1, num_inputs=50))) # Y.shape = (batch, 50, 10)
+        
+
+        dCdW1, dCdW0 = deriv_multilayer(Y[batch], T[batch], X[batch]) # shape = (784, 10)
+        W1 = W1 - (alpha*dCdW1)
+        W0 = W0 - (alpha*dCdW0)
+ 
+#         if (batch%10 == 0):
+#             imshow(W[1].reshape((28, 28)))
+#             show()
+ 
+        #if (batch%20 == 0):
+        #    plt.imshow(W[3].reshape((28,28)))
+        #    show()
+            #print(i, cost(Y,T))
+        #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
+
+        if batch == 0:
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
+            costs.append(cost(asarray(Y)[0],T[0]))
+            perf_rates.append(mean(argmax(T[0], 1) == argmax(Y, 2)) )
+        else:
+            y_length = len(Y)
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
+            costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
+            perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
+
+       
+#         costs.append(cost(Y,T[batch])/(batch+1))
+#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
+        
+    return (W1, W0, costs, perf_rates)
+
+# PART 7 - MULTILAYER CLASSIFICATION
+def tanh_layer(y, W, b):    
+    '''Return the output of a tanh layer for the input matrix y. y
+    is an NxM matrix where N is the number of inputs for a single case, and M
+    is the number of cases'''
+    return tanh(dot(W.T, y)+b)
+
+
+def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
+    '''
+    Computes the gradient of the cross-entropy
+    cost function w.r.t the parameters of a neural network'''
+    dCdL1 =  y - y_
+    dCdW1 =  dot(L0, ((1- L1**2)*dCdL1).T)
+  
+    dCdL0 = dot(W1, ((1- L1**2)*dCdL1))
+    dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
+
+    return (dCdW0, dCdW1) # return both weights of layer 1 and layer 2
+
+def forward(x, W0, b0, W1, b1):
+    L0 = tanh_layer(x, W0, b0)
+    L1 = tanh_layer(L0, W1, b1)
+    # output = softmax(L1)
+    output = softmax(L1.T).T
+    return L0, L1, output
+
+def get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T):
+    '''
+   Returns dW using finite difference approximate of the gradient of the cost
+   with respect to W, at coordinate i
+   '''
+    h_W1 = zeros(W1.shape)
+    h_W0 = zeros(W0.shape)
+    diff = 0.00001
+ 
+    h_W0[i][j] = diff
+    h_W1[i][j] = diff
+    
+    Y_W0_plus = forward(X, W0+h_W0, B0, W1, B1)[2]
+    Y_W0_less = forward(X, W0-h_W0, B0, W1, B1)[2]
+    
+    Y_W1_plus = forward(X, W0, B0, W1+h_W1, B1)[2]
+    Y_W1_less = forward(X, W0, B0, W1-h_W1, B1)[2]
+    
+    #print(cost(Y_plus, T))
+    #print(cost(Y_less, T))    
+    finite_diff_W0 = (cost(Y_W0_plus, T) - cost(Y_W0_less, T))/ (diff*2)
+    finite_diff_W1 = (cost(Y_W1_plus, T) - cost(Y_W1_less, T))/ (diff*2)
+   
+    return (finite_diff_W0, finite_diff_W1)
+
+
+# def check_both_Ws(X, W0, W1, B0, B1, i, j, T):
+#   dCdW0 = get_finite_diff_multi(X, W0, B0, B1, i, j, T) # B0 is W0[0]
+#   dCdW1 = get_finite_diff_multi(X, W1, B0, B1, i, j, T) # B1 is W1[0]
+# 
+#   return (dCdW0, dCdW1)
+
+
+def check_dWs_multi(T):
+    '''
+   Verify gradient correctness by using finite-difference approximation.
+   
+   '''
+    X = (random.rand(784, 60000)-0.5)*0.02
+    T = (random.rand(10, 60000)-0.5)*0.02
+    W0 = (random.rand(784, 300)-0.5)*0.02
+    W1 = (random.rand(300, 10)-0.5)*0.02
+    B0 = (random.rand(300, 1)-0.5)*0.02
+    B1 = (random.rand(10, 1)-0.5)*0.02
+    L0, L1, Y = forward(X, W0, B0, W1, B1)
+    
+    
+    dW0s, dW1s = deriv_multilayer(W0, B0, W1, B1, X, L0, L1, Y, T)
+    
+    dW0s_pred = []
+    dW0s_fd = []
+    
+    # check dCdW1
+    dW1s_pred = [] # format: [(dW0, dW1)...] value at (i,j)
+    dW1s_fd = []   
+    for num in range(5):
+        i = randint(300)
+        j = randint(10)
+        
+        # get predictions for W0
+        dW0s_pred.append(dW0s[i][j])
+        dW1s_pred.append(dW1s[i][j])
+        
+        # get predictions for W1
+        dW0s_fd.append(get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T)[0])
+        dW1s_fd.append(get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T)[1])
+    
+    
+    print("dCdW0 NW: ", dW0s_pred)
+    print("dCdW0 FD: ", dW0s_fd) 
+                    
+    print("dCdW1 NW: ", dW1s_pred)
+    print("dCdW1 FD: ", dW1s_fd)
+    
  
  
+
+
+
+def multi_layer_network(train_data, test_data, train_target, test_target):
+  #X = zeros((1,784))
+  #print(X.shape)
+  #print(train_data.shape)
+  
+  #X = train_data
+  #new_col = zeros((60000, 1))
+  #X = insert(X, 0, values=0, axis=1).T
+  
+
+  
+  # # weights dimension = (output, input+1) # +1 for the bias 
+  # W0 = (random.rand(785, 300)-0.5)*0.02
+  # W1 = (random.rand(301, 10)-0.5)*0.02
+  # #B0 = W0[:,[0]].T # get first column
+  # B0 = W0[0,:].T.reshape(300,1)
+  # #print(B0.shape) 
+  # #B1 = W1[:,[0]].T# get first column
+  # B1 = W1[0,:].T .reshape(10,1)
+  # L0, L1, Y = forward(X, W0, B0, W1[1:302,:].reshape(300,10), B1)
+
+  #print(X.shape)
+  X = train_data.T
+  T = train_target.T
+  #print(T.shape)
+
+  W0 = (random.rand(784, 300)-0.5)*0.02
+  #print(W0.shape)
+  W1 = (random.rand(300, 10)-0.5)*0.02
+  B0 = (random.rand(300, 1)-0.5)*0.02
+  B1 = (random.rand(10,1)-0.5)*0.02
+  
+
+  #print(B1.shape)
+  L0, L1, Y = forward(X, W0, B0, W1, B1)
+  #print(L0.shape)
+  #print(L1.shape)
+  #print(Y.shape)
+  #shape = (10, 60000)
+  #dW0s, dW1s = deriv_multilayer(W0, B0, W1, B1, X, L0, L1, Y, T) # get derivatives of all weights
+   
+  # PART 7
+  check_dWs_multi()
+ 
+  
+  
+
+
+
 if __name__ == "__main__":
-    #part1()
- 
-    train_data, test_data, train_target, test_target = get_data()
-   
-    W = (random.rand(10, 784)-0.5)*0.02
-    B = (random.rand(1, 10)-0.5)*0.02
-    X = train_data
-    T = train_target
- 
-    # PART 2
-    Y = single_layer_network(X, W, B, num_inputs=60000)
- 
-    # PART 3
-    dWs = derivative(Y, T, X) # get derivatives of all weights
-   
-    #plt.imshow(dWs[8].reshape(28,28))
-    #plt.imshow(finite_diff(W, B, Y, T).reshape(28,28))
-    #show()
-   
-    # PART 4
-    part4(W, B, Y, dWs, T)
- 
-    # PART 5
-    check_performance(train_data, train_target, test_data, test_target, W, B)
-    #part5(train_data, train_target, test_data, test_target, W, B)
-    #print(dWs.shape)
-   
- 
-    #ft_dWs = get_finite_diff_dW()
+  train_data, test_data, train_target, test_target = get_data()
+  # PART 1
+  #part1()
+  
+  # PARTS 2-5
+  #single_layer_network(train_data, test_data, train_target, test_target)
+
+  # PARTS 7-10
+  multi_layer_network(train_data, test_data, train_target, test_target)
