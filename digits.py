@@ -17,7 +17,7 @@ from numpy import random
 import os
 from scipy.io import loadmat
  
-random.seed(100)
+random.seed(200)
  
 digit_to_numInputs = {} #key is the digit, value is the number of inputs for that digit
 digit_to_indexPlusOne = [] #index represents the digit, value at index i is the index at which the inputs start in train_data, train_target etc..
@@ -622,19 +622,16 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, ini
         W1 = W1 - (alpha*dCdW1)
         W0 = W0 - (alpha*dCdW0)
         
-        #dCdB0 = derivative_b(Y[batch], T[batch].T, B0).T
-        #dCdB1 = derivative_b(Y[batch], T[batch].T, B1).T
-        #B0 = B0 - alpha*dCdB0
-        #B1 = B1 - alpha*dCdB1
+        # dCdB0 = derivative_b(Y[batch], T[batch], 50).T
+        # dCdB1 = derivative_b(Y[batch], T[batch], 50).T
+        # B0 = B0 - alpha*dCdB0
+        # B1 = B1 - alpha*dCdB1
  
-        #if (batch%10 == 0):
+        #if (batch%100 == 0):
         #    imshow(W0.T[7].reshape((28,28)))
         #    show()
  
-        #if (batch%20 == 0):
-        #    plt.imshow(W[3].reshape((28,28)))
-        #    show()
-            #print(i, cost(Y,T))
+ 
         #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
 
         if batch == 0:
@@ -663,7 +660,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1, 
    '''
     #opt_W0, opt_W1, opt_B0, opt_B1, costs, perf_rates = minibatch_grad_descent_single(train_data, train_target, W0, W1, B0, B1)
  
-    T = test_target.T
+    T = test_target
     X = test_data.T
     Y = forward(X, W0, B0, W1, B1)[2].T
     #print shape(X)
@@ -677,7 +674,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1, 
     correct = 0
     correct_images = []
     incorrect_images = []
-    for input in range(10000):        
+    for input in range(10000): 
         if (T[input] == Y[input]).all():
             correct+=1
             #display
@@ -686,10 +683,11 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1, 
             #print T[input], Y[input]
             incorrect_images.append(input)
     
+    
     # make a grid of correct images just like Part 1
     for i in range(20):
-        image = X[correct_images[i]]
-        reshaped = reshape(image, [28, 28])
+        image = X.T[correct_images[i]]
+        reshaped = image.reshape((28, 28))
         subplot(4, 5, i)
         plt.imshow(reshaped)
         plt.axis('off')
@@ -698,8 +696,8 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1, 
    
     # grid of incorrect images
     for i in range(10):
-        image = X[incorrect_images[i]]
-        reshaped = reshape(image, [28, 28])
+        image = X.T[incorrect_images[i]]
+        reshaped = image.reshape((28, 28))
         subplot(2, 5, i)
         plt.imshow(reshaped)
         plt.axis('off')
