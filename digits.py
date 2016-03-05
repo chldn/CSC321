@@ -472,57 +472,7 @@ def single_layer_network(train_data, test_data, train_target, test_target):
   # PART 5 - Gradient Descent, checks performances, graphs of Iterations vs. Cost & Performance
   part5(train_data, train_target, test_data, test_target, W, B)
     
-# extra - havne't gotten here yet
-def minibatch_grad_descent_multi(train_data, train_target, init_W, init_B):
-    alpha = 0.001
-    EPS = 1e-5
-   
-    W = init_W.copy()
-    B = init_B.copy()
-    b = 50
- 
-    costs = []
-    perf_rates = []
-    
-    Y = []
-    
-    X, T = create_batches(b, train_data, train_target, 60000)
-    # X.shape = (1200, 50, 784)
-    # T.shape = (1200, 50, 10)
-   
-    for batch in range(1200): # for each batch of 50 images
-        Y.append(list(forward(X[batch], W0, b0, W1, b1, num_inputs=50))) # Y.shape = (batch, 50, 10)
-        
 
-        dCdW1, dCdW0 = deriv_multilayer(Y[batch], T[batch], X[batch]) # shape = (784, 10)
-        W1 = W1 - (alpha*dCdW1)
-        W0 = W0 - (alpha*dCdW0)
- 
-#         if (batch%10 == 0):
-#             imshow(W[1].reshape((28, 28)))
-#             show()
- 
-        #if (batch%20 == 0):
-        #    plt.imshow(W[3].reshape((28,28)))
-        #    show()
-            #print(i, cost(Y,T))
-        #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
-
-        if batch == 0:
-            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
-            costs.append(cost(asarray(Y)[0],T[0]))
-            perf_rates.append(mean(argmax(T[0], 1) == argmax(Y, 2)) )
-        else:
-            y_length = len(Y)
-            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
-            costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
-            perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
-
-       
-#         costs.append(cost(Y,T[batch])/(batch+1))
-#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
-        
-    return (W1, W0, costs, perf_rates)
 
 # PART 7 - MULTILAYER CLASSIFICATION
 def tanh_layer(y, W, b):    
@@ -532,22 +482,39 @@ def tanh_layer(y, W, b):
     return tanh(dot(W.T, y)+b)
 
 
+# def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
+#     '''
+#     Computes the gradient of the cross-entropy
+#     cost function w.r.t the parameters of a neural network'''
+#     dCdL1 =  y - y_
+#     dCdW1 =  dot(L0, ((1- L1**2)*dCdL1).T)
+#   
+#     dCdL0 = dot(W1, ((1- L1**2)*dCdL1))
+#     dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
+# 
+#     return (dCdW0, dCdW1) # return both weights of layer 1 and layer 2
+
 def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
-    '''
-    Computes the gradient of the cross-entropy
+    '''Incomplete function for computing the gradient of the cross-entropy
     cost function w.r.t the parameters of a neural network'''
     dCdL1 =  y - y_
-    dCdW1 =  dot(L0, ((1- L1**2)*dCdL1).T)
-  
-    dCdL0 = dot(W1, ((1- L1**2)*dCdL1))
-    dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
+    dCdW1 =  dot(L0, dCdL1.T ) # don't want the nonlinearity at the top layer
+    
+    dCdL0 = dot(W1, dCdL1)
+    dCdW0 = dot(x.T, ((1- L0**2)*dCdL0).T)
 
     return (dCdW0, dCdW1) # return both weights of layer 1 and layer 2
-
+    
+# def forward(x, W0, b0, W1, b1):
+#     L0 = tanh_layer(x, W0, b0)
+#     L1 = tanh_layer(L0, W1, b1)
+#     # output = softmax(L1)
+#     output = softmax(L1.T).T
+#     return L0, L1, output
+    
 def forward(x, W0, b0, W1, b1):
     L0 = tanh_layer(x, W0, b0)
-    L1 = tanh_layer(L0, W1, b1)
-    # output = softmax(L1)
+    L1 = dot(W1.T, L0) + b1 # don't want tanh at the top layer
     output = softmax(L1.T).T
     return L0, L1, output
 
@@ -584,7 +551,7 @@ def get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T):
 #   return (dCdW0, dCdW1)
 
 
-def check_dWs_multi(T):
+def check_dWs_multi():
     '''
    Verify gradient correctness by using finite-difference approximation.
    
@@ -626,7 +593,143 @@ def check_dWs_multi(T):
     print("dCdW1 FD: ", dW1s_fd)
     
  
+# extra - havne't gotten here yet
+def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, init_B0, init_B1):
+    alpha = 0.0001
+    EPS = 1e-5
+   
+    W0 = init_W0.copy()
+    W1 = init_W1.copy()
+    B0 = init_B0.copy()
+    B1 = init_B1.copy()
+    b = 50
  
+    costs = []
+    perf_rates = []
+    
+    Y = []
+    
+    X, T = create_batches(b, train_data, train_target, 60000)
+    # X.shape = (1200, 50, 784)
+    # T.shape = (1200, 50, 10)
+   
+    for batch in range(1200): # for each batch of 50 images
+        L0, L1, Y_out = forward(X[batch].T, W0, B0, W1, B1)
+        Y.append(Y_out.T) # Y.shape = (batch, 50, 10)
+        
+        
+        dCdW0, dCdW1 = deriv_multilayer(W0, B0, W1, B1, X[batch], L0, L1, Y[batch].T, T[batch].T)
+        W1 = W1 - (alpha*dCdW1)
+        W0 = W0 - (alpha*dCdW0)
+        
+        #dCdB0 = derivative_b(Y[batch], T[batch].T, B0).T
+        #dCdB1 = derivative_b(Y[batch], T[batch].T, B1).T
+        #B0 = B0 - alpha*dCdB0
+        #B1 = B1 - alpha*dCdB1
+ 
+        #if (batch%10 == 0):
+        #    imshow(W0.T[7].reshape((28,28)))
+        #    show()
+ 
+        #if (batch%20 == 0):
+        #    plt.imshow(W[3].reshape((28,28)))
+        #    show()
+            #print(i, cost(Y,T))
+        #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
+
+        if batch == 0:
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
+            costs.append(cost(asarray(Y)[0],T[0]))
+        else:
+            y_length = len(Y)
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
+            costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
+            perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
+
+       
+#         costs.append(cost(Y,T[batch])/(batch+1))
+#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
+        
+        print(batch, costs[batch])
+    return (W0, W1, B0, B1, costs, perf_rates)
+    
+    
+def check_performance(train_data, train_target, test_data, test_target, W0, W1, B0, B1):
+    '''
+   Goes through test set it batch size = 1000.
+   Calculates the correctness of each test case, and outputs the total performance.
+   @returns:
+   total_peformance - percentage of correctness
+   '''
+    #opt_W0, opt_W1, opt_B0, opt_B1, costs, perf_rates = minibatch_grad_descent_single(train_data, train_target, W0, W1, B0, B1)
+ 
+    T = test_target.T
+    X = test_data.T
+    Y = forward(X, W0, B0, W1, B1)[2].T
+    #print shape(X)
+    for row in range(10000):
+        not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
+        Y[row][not_max] = 0 # set all non_predictions to 0
+                
+        the_max = Y[row] == amax(Y[row]) # get all prediction indices
+        Y[row][the_max] = 1 # set all predictions to 1
+   
+    correct = 0
+    correct_images = []
+    incorrect_images = []
+    for input in range(10000):        
+        if (T[input] == Y[input]).all():
+            correct+=1
+            #display
+            correct_images.append(input)
+        else:
+            #print T[input], Y[input]
+            incorrect_images.append(input)
+    
+    # make a grid of correct images just like Part 1
+    for i in range(20):
+        image = X[correct_images[i]]
+        reshaped = reshape(image, [28, 28])
+        subplot(4, 5, i)
+        plt.imshow(reshaped)
+        plt.axis('off')
+    plt.savefig('correct_images.jpg')
+    plt.close()
+   
+    # grid of incorrect images
+    for i in range(10):
+        image = X[incorrect_images[i]]
+        reshaped = reshape(image, [28, 28])
+        subplot(2, 5, i)
+        plt.imshow(reshaped)
+        plt.axis('off')
+    plt.savefig('incorrect_images.jpg')
+    plt.close()
+    
+    total_performance = float(correct)/10000
+    print(total_performance)
+ 
+    return total_performance
+
+def part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1):
+    '''
+   minimize your the cost function using mini-batch gradient descent, using
+   the training set provided to you
+   learning rate = 0.01
+   batch size = 50
+ 
+   For the training and the test set, graph the negative-log probability of
+   the correct answer and correct classification rate versus the number of
+   updates to the weights and biases during training
+ 
+   '''
+    (opt_W0, opt_W1, opt_B0, opt_B1, costs, perf_rates)  = minibatch_grad_descent_multi(train_data, train_target, W0, W1, B0, B1)
+    perf = check_performance(train_data, train_target, test_data, test_target, opt_W0, opt_W1, opt_B0, opt_B1)
+    print(perf)
+    # graph performance
+    num_updates = 1200
+    #graph_performance(num_updates, costs, perf_rates)
+
 
 
 
@@ -669,11 +772,16 @@ def multi_layer_network(train_data, test_data, train_target, test_target):
   #print(L1.shape)
   #print(Y.shape)
   #shape = (10, 60000)
+  
+  # PART 7
   #dW0s, dW1s = deriv_multilayer(W0, B0, W1, B1, X, L0, L1, Y, T) # get derivatives of all weights
    
-  # PART 7
-  check_dWs_multi()
- 
+  # PART 8
+  #check_dWs_multi()
+  
+  # PART 9
+  part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1)
+    
   
   
 
