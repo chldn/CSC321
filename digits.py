@@ -17,7 +17,7 @@ from numpy import random
 import os
 from scipy.io import loadmat
  
-random.seed(1000)
+random.seed(200)
  
 digit_to_numInputs = {} #key is the digit, value is the number of inputs for that digit
 digit_to_indexPlusOne = [] #index represents the digit, value at index i is the index at which the inputs start in train_data, train_target etc..
@@ -286,7 +286,7 @@ def minibatch_grad_descent_single(train_data, train_target, init_W, init_B):
    W : 10 x 784
    B : 10 x 1
    '''
-    alpha = 0.001
+    alpha = 0.0001
     EPS = 1e-5
    
     W = init_W.copy()
@@ -480,10 +480,8 @@ def deriv_multilayer(W0, W1, x, L0, L1, y, y_):
     '''Incomplete function for computing the gradient of the cross-entropy
     cost function w.r.t the parameters of a neural network'''
     dCdL1 =  y - y_ #(10, 60000)
-    # don't want the nonlinearity at the top layer
-    dCdW1 =  dot(L0, dCdL1.T) # (300, 10)
+    dCdW1 =  dot(L0, ((1- L1**2)*dCdL1).T)
     
-    #dCdL0 = dot(W1, dCdL1)
     dCdL0 = dot(W1, ((1- L1**2)*dCdL1))
     dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
 
@@ -504,23 +502,24 @@ def forward(x, W0, W1, input_size):
     output = softmax(L1)
     return L0, L1, output
 
-def get_finite_diff_multi(X, W0, W1, i, j, T):
+def get_finite_diff_multi(X, W0, W1, i, j, T, input_size=60000):
     '''
    Returns dW using finite difference approximate of the gradient of the cost
    with respect to W, at coordinate i
    '''
+    
     h_W1 = zeros(W1.shape)
     h_W0 = zeros(W0.shape)
-    diff = 0.00001
+    diff = 0.001
  
     h_W0[i][j] = diff
     h_W1[i][j] = diff
     
-    Y_W0_plus = forward(X, W0+h_W0, W1, input_size=60000)[2]
-    Y_W0_less = forward(X, W0-h_W0, W1, input_size=60000)[2]
+    Y_W0_plus = forward(X, W0+h_W0, W1, input_size=input_size)[2]
+    Y_W0_less = forward(X, W0-h_W0, W1, input_size=input_size)[2]
     
-    Y_W1_plus = forward(X, W0, W1+h_W1, input_size=60000)[2]
-    Y_W1_less = forward(X, W0, W1-h_W1, input_size=60000)[2]
+    Y_W1_plus = forward(X, W0, W1+h_W1, input_size=input_size)[2]
+    Y_W1_less = forward(X, W0, W1-h_W1, input_size=input_size)[2]
     
     #print(cost(Y_plus, T))
     #print(cost(Y_less, T))    
@@ -531,17 +530,18 @@ def get_finite_diff_multi(X, W0, W1, i, j, T):
 
 
 
-def check_dWs_multi():
+def check_dWs_multi(T):
     '''
    Verify gradient correctness by using finite-difference approximation.
    
    '''
-    X = (random.rand(784, 60000)-0.5)*0.02
-    X = concatenate((ones((1, 60000)), X)) # pad with 1's for bias
-    T = (random.rand(10, 60000)-0.5)*0.02
-    W0 = (random.rand(785, 300)-0.5)*0.02
-    W1 = (random.rand(301, 10)-0.5)*0.02
-    L0, L1, Y = forward(X, W0, W1, input_size=60000)
+    set_size = 1
+    X = (random.rand(784, set_size)-0.5)
+    X = concatenate((ones((1, set_size)), X)) # pad with 1's for bias
+    T = T[:, 0:1]
+    W0 = (random.rand(785, 20)-0.5)*0.02
+    W1 = (random.rand(21, 10)-0.5)*0.02
+    L0, L1, Y = forward(X, W0, W1, input_size=set_size)
     
     
     dW0s, dW1s = deriv_multilayer(W0, W1, X, L0, L1, Y, T)
@@ -553,15 +553,15 @@ def check_dWs_multi():
     dW1s_pred = [] # format: [(dW0, dW1)...] value at (i,j)
     dW1s_fd = []   
     for num in range(5):
-        i = randint(300)
+        i = randint(20)
         j = randint(10)
         
         # get predictions for W0
-        dW0s_pred.append(dW0s[i][j])
+        dW0s_pred.append(dW0s[i][j+1])
         dW1s_pred.append(dW1s[i][j])
         
         # get predictions for W1
-        dWs = get_finite_diff_multi(X, W0, W1, i, j, T)
+        dWs = get_finite_diff_multi(X, W0, W1, i, j, T, set_size)
         dW0s_fd.append(dWs[0])
         dW1s_fd.append(dWs[1])
     
@@ -574,7 +574,7 @@ def check_dWs_multi():
     
 
 def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1):
-    alpha = 0.01
+    alpha = 0.0001
     EPS = 1e-5
    
     W0 = init_W0.copy()
@@ -596,25 +596,36 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1):
         L0, L1, Y_out = forward(X_batch, W0, W1, input_size=b)
         Y.append(Y_out.T) # Y.shape = (batch, 50, 10)
         
+        
         dCdW0, dCdW1 = deriv_multilayer(W0, W1, X_batch, L0, L1, Y[batch].T, T[batch].T)
         W1 = W1 - (alpha*dCdW1) # 301 x 10
         W0 = W0 - (alpha*dCdW0[:,1:301]) # 785 x 300
         
+
+ 
         # if (batch%100 == 0):
         #     imshow(W0.T[7][1:785,].reshape((28,28)))
         #     show()
  
+ 
         print(batch, cost(asarray(Y)[:],T[:len(Y)])/(batch+1), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
 
         if batch == 0:
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
             costs.append(cost(asarray(Y)[0],T[0]))
             perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)))
             
         else:
             y_length = len(Y)
+            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
             costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
             perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
 
+       
+#         costs.append(cost(Y,T[batch])/(batch+1))
+#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
+        
+        #print(batch, costs[batch])
     return (W0, W1, costs, perf_rates)
     
     
@@ -631,7 +642,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1):
     X = test_data.T
     X = concatenate((ones((1, 10000)), X)) # pad with 1s for bias
     Y = forward(X, W0, W1, input_size=10000)[2].T
-
+    #print shape(X)
     for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
@@ -651,7 +662,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1):
             #print T[input], Y[input]
             incorrect_images.append(input)
     
-    
+    '''
     # make a grid of correct images just like Part 1
     for i in range(20):
         image = X.T[correct_images[i]]
@@ -671,7 +682,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1):
         plt.axis('off')
     plt.savefig('incorrect_images.jpg')
     plt.close()
-    
+    '''
     total_performance = float(correct)/10000
     print(total_performance)
  
@@ -716,7 +727,18 @@ def part9(train_data, train_target, test_data, test_target, W0, W1):
 
 
 def multi_layer_network(train_data, test_data, train_target, test_target):
+  #X = zeros((1,784))
+  #print(X.shape)
+  #print(train_data.shape)
+  
+  #X = train_data
   #new_col = zeros((60000, 1))
+  #X = insert(X, 0, values=0, axis=1).T
+  
+  # # weights dimension = (output, input+1) # +1 for the bias 
+  # W0 = (random.rand(785, 300)-0.5)*0.02
+  # W1 = (random.rand(301, 10)-0.5)*0.02
+  # L0, L1, Y = forward(X, W0, B0, W1[1:302,:].reshape(300,10), B1)
 
   X = train_data
   X = insert(X, 0, values=1, axis=1).T
@@ -725,18 +747,26 @@ def multi_layer_network(train_data, test_data, train_target, test_target):
   W0 = (random.rand(785, 300)-0.5)*0.02
   W1 = (random.rand(301, 10)-0.5)*0.02
   
-  L0, L1, Y = forward(X, W0, W1, input_size=60000)
+  
 
+  #print(B1.shape)
+  L0, L1, Y = forward(X, W0, W1, input_size=60000)
+  #print(L0.shape)
+  #print(L1.shape)
+  #print(Y.shape)
   
   # PART 7
   #dW0s, dW1s = deriv_multilayer(W0, W1, X, L0, L1, Y, T) # get derivatives of all weights
    
   # PART 8
-  #check_dWs_multi()
+  check_dWs_multi(T)
   
   # PART 9
   part9(train_data, train_target, test_data, test_target, W0, W1)
     
+  
+  
+
 
 
 if __name__ == "__main__":
