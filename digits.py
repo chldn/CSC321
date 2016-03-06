@@ -483,7 +483,8 @@ def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
     # don't want the nonlinearity at the top layer
     dCdW1 =  dot(L0, dCdL1.T) # (300, 10)
     
-    dCdL0 = dot(W1, dCdL1)
+    #dCdL0 = dot(W1, dCdL1)
+    dCdL0 = dot(W1, ((1- L1**2)*dCdL1))
     dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
 
     return (dCdW0, dCdW1) # return both weights of layer 1 and layer 2
@@ -577,8 +578,6 @@ def check_dWs_multi():
     print("dCdW1 FD: ", dW1s_fd)
     
 
- 
-# extra - havne't gotten here yet
 def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, init_B0, init_B1):
     alpha = 0.0001
     EPS = 1e-5
@@ -617,7 +616,7 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, ini
         #    show()
  
  
-        print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
+        print(batch, cost(asarray(Y)[:],T[:len(Y)])/(batch+1), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
 
         if batch == 0:
             #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
@@ -780,10 +779,10 @@ def multi_layer_network(train_data, test_data, train_target, test_target):
   #dW0s, dW1s = deriv_multilayer(W0, B0, W1, B1, X, L0, L1, Y, T) # get derivatives of all weights
    
   # PART 8
-  #check_dWs_multi()
+  check_dWs_multi()
   
   # PART 9
-  part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1)
+  #part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1)
     
   
   
