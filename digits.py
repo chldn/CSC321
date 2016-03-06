@@ -574,7 +574,7 @@ def check_dWs_multi():
     
 
 def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1):
-    alpha = 0.0001
+    alpha = 0.01
     EPS = 1e-5
    
     W0 = init_W0.copy()
@@ -596,36 +596,25 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1):
         L0, L1, Y_out = forward(X_batch, W0, W1, input_size=b)
         Y.append(Y_out.T) # Y.shape = (batch, 50, 10)
         
-        
         dCdW0, dCdW1 = deriv_multilayer(W0, W1, X_batch, L0, L1, Y[batch].T, T[batch].T)
         W1 = W1 - (alpha*dCdW1) # 301 x 10
         W0 = W0 - (alpha*dCdW0[:,1:301]) # 785 x 300
         
-
- 
         # if (batch%100 == 0):
         #     imshow(W0.T[7][1:785,].reshape((28,28)))
         #     show()
  
- 
         print(batch, cost(asarray(Y)[:],T[:len(Y)])/(batch+1), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
 
         if batch == 0:
-            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
             costs.append(cost(asarray(Y)[0],T[0]))
             perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)))
             
         else:
             y_length = len(Y)
-            #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
             costs.append(cost(asarray(Y)[:],T[:y_length])/(batch+1))
             perf_rates.append(mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)))
 
-       
-#         costs.append(cost(Y,T[batch])/(batch+1))
-#         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
-        
-        #print(batch, costs[batch])
     return (W0, W1, costs, perf_rates)
     
     
@@ -642,7 +631,7 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1):
     X = test_data.T
     X = concatenate((ones((1, 10000)), X)) # pad with 1s for bias
     Y = forward(X, W0, W1, input_size=10000)[2].T
-    #print shape(X)
+
     for row in range(10000):
         not_max = Y[row] < amax(Y[row]) # get all non_prediction indices
         Y[row][not_max] = 0 # set all non_predictions to 0
@@ -727,18 +716,7 @@ def part9(train_data, train_target, test_data, test_target, W0, W1):
 
 
 def multi_layer_network(train_data, test_data, train_target, test_target):
-  #X = zeros((1,784))
-  #print(X.shape)
-  #print(train_data.shape)
-  
-  #X = train_data
   #new_col = zeros((60000, 1))
-  #X = insert(X, 0, values=0, axis=1).T
-  
-  # # weights dimension = (output, input+1) # +1 for the bias 
-  # W0 = (random.rand(785, 300)-0.5)*0.02
-  # W1 = (random.rand(301, 10)-0.5)*0.02
-  # L0, L1, Y = forward(X, W0, B0, W1[1:302,:].reshape(300,10), B1)
 
   X = train_data
   X = insert(X, 0, values=1, axis=1).T
@@ -747,13 +725,8 @@ def multi_layer_network(train_data, test_data, train_target, test_target):
   W0 = (random.rand(785, 300)-0.5)*0.02
   W1 = (random.rand(301, 10)-0.5)*0.02
   
-  
-
-  #print(B1.shape)
   L0, L1, Y = forward(X, W0, W1, input_size=60000)
-  #print(L0.shape)
-  #print(L1.shape)
-  #print(Y.shape)
+
   
   # PART 7
   #dW0s, dW1s = deriv_multilayer(W0, W1, X, L0, L1, Y, T) # get derivatives of all weights
@@ -764,9 +737,6 @@ def multi_layer_network(train_data, test_data, train_target, test_target):
   # PART 9
   part9(train_data, train_target, test_data, test_target, W0, W1)
     
-  
-  
-
 
 
 if __name__ == "__main__":
