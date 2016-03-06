@@ -337,7 +337,7 @@ def minibatch_grad_descent_single(train_data, train_target, init_W, init_B):
         if batch == 0:
             #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
             costs.append(cost(asarray(Y)[0],T[0]))
-            perf_rates.append(mean(argmax(T[0], 1) == argmax(Y, 2)) )
+            perf_rates.append(0) #must change !!! - this means perf at 0th entry is always 0
         else:
             y_length = len(Y)
             #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
@@ -409,24 +409,6 @@ def check_performance(train_data, train_target, test_data, test_target, init_W, 
  
     return total_performance
  
-def graph_performance(num_updates, costs, perf_rates):
-    updates = range(1, num_updates+1)
-
-    plt.plot(updates, costs, 'ro')
-    plt.title("Iteration Vs. Cross-Entropy Cost")
-    plt.xlabel('Iteration')
-    plt.ylabel('Cross-Entropy Cost')
-    plt.axis([0, max(updates) + 2, 0, max(costs) + 10])
-    plt.savefig('iteration_to_cost.jpg')
-
-    plt.plot(updates, perf_rates)
-    plt.title("Iteration Vs. Classification Performance")
-    plt.xlabel('Iteration')
-    plt.ylabel('Classification Performance')
-    plt.axis([0, max(updates) + 2, 0, max(perf_rates) + 0.1])
-    plt.savefig('iteration_to_perf.jpg')
-    
-
 
 def part5(train_data, train_target, test_data, test_target, init_W, init_B):
     '''
@@ -497,11 +479,12 @@ def tanh_layer(y, W, b):
 def deriv_multilayer(W0, b0, W1, b1, x, L0, L1, y, y_):
     '''Incomplete function for computing the gradient of the cross-entropy
     cost function w.r.t the parameters of a neural network'''
-    dCdL1 =  y - y_
-    dCdW1 =  dot(L0, dCdL1.T ) # don't want the nonlinearity at the top layer
+    dCdL1 =  y - y_ #(10, 60000)
+    # don't want the nonlinearity at the top layer
+    dCdW1 =  dot(L0, dCdL1.T) # (300, 10)
     
     dCdL0 = dot(W1, dCdL1)
-    dCdW0 = dot(x.T, ((1- L0**2)*dCdL0).T)
+    dCdW0 = dot(x, ((1- L0**2)*dCdL0).T)
 
     return (dCdW0, dCdW1) # return both weights of layer 1 and layer 2
     
@@ -582,8 +565,9 @@ def check_dWs_multi():
         dW1s_pred.append(dW1s[i][j])
         
         # get predictions for W1
-        dW0s_fd.append(get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T)[0])
-        dW1s_fd.append(get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T)[1])
+        dWs = get_finite_diff_multi(X, W0, W1, B0, B1, i, j, T)
+        dW0s_fd.append(dWs[0])
+        dW1s_fd.append(dWs[1])
     
     
     print("dCdW0 NW: ", dW0s_pred)
@@ -592,6 +576,7 @@ def check_dWs_multi():
     print("dCdW1 NW: ", dW1s_pred)
     print("dCdW1 FD: ", dW1s_fd)
     
+
  
 # extra - havne't gotten here yet
 def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, init_B0, init_B1):
@@ -618,7 +603,7 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, ini
         Y.append(Y_out.T) # Y.shape = (batch, 50, 10)
         
         
-        dCdW0, dCdW1 = deriv_multilayer(W0, B0, W1, B1, X[batch], L0, L1, Y[batch].T, T[batch].T)
+        dCdW0, dCdW1 = deriv_multilayer(W0, B0, W1, B1, X[batch].T, L0, L1, Y[batch].T, T[batch].T)
         W1 = W1 - (alpha*dCdW1)
         W0 = W0 - (alpha*dCdW0)
         
@@ -632,11 +617,13 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, ini
         #    show()
  
  
-        #print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)) )
+        print(batch, cost(Y,T[batch]), mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)) )
 
         if batch == 0:
             #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[0],T[0]), "Accuracy: ", mean(argmax(T[0], 1) == argmax(Y, 2)) 
             costs.append(cost(asarray(Y)[0],T[0]))
+            perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y[batch], 1)))
+            
         else:
             y_length = len(Y)
             #print "Batch #: ", batch, "Cost: ", cost(asarray(Y)[:],T[:y_length])/(batch+1), "Accuracy: ", mean(argmax(T[:batch], 2) == argmax(Y[:batch], 2)) 
@@ -647,7 +634,7 @@ def minibatch_grad_descent_multi(train_data, train_target, init_W0, init_W1, ini
 #         costs.append(cost(Y,T[batch])/(batch+1))
 #         perf_rates.append(mean(argmax(T[batch,:,:], 1) == argmax(Y, 1)))
         
-        print(batch, costs[batch])
+        #print(batch, costs[batch])
     return (W0, W1, B0, B1, costs, perf_rates)
     
     
@@ -709,6 +696,24 @@ def check_performance(train_data, train_target, test_data, test_target, W0, W1, 
  
     return total_performance
 
+def graph_performance(num_iterations, costs, perf_rates):
+    iterations = range(1, num_iterations+1)
+
+    plt.plot(iterations, costs, 'ro')
+    plt.title("Iteration Vs. Cross-Entropy Cost")
+    plt.xlabel('Iteration')
+    plt.ylabel('Cross-Entropy Cost')
+    plt.axis([0, max(iterations) + 2, 0, max(costs) + 10])
+    plt.savefig('iteration_to_cost.jpg')
+
+    plt.plot(iterations[1:], perf_rates[1:]) # must change!!! - this excludes first iteration & perf_rate
+    plt.title("Iteration Vs. Classification Performance")
+    plt.xlabel('Iteration')
+    plt.ylabel('Classification Performance')
+    plt.axis([0, max(iterations) + 2, 0, max(perf_rates) + 0.1])
+    plt.savefig('iteration_to_perf.jpg')
+
+
 def part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1):
     '''
    minimize your the cost function using mini-batch gradient descent, using
@@ -726,7 +731,7 @@ def part9(train_data, train_target, test_data, test_target, W0, W1, B0, B1):
     print(perf)
     # graph performance
     num_updates = 1200
-    #graph_performance(num_updates, costs, perf_rates)
+    graph_performance(num_updates, costs, perf_rates)
 
 
 
